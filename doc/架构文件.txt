@@ -1,0 +1,654 @@
+# AI工作流可视化编排平台 - 完整架构文档 (Element Plus版本)
+
+## 📋 项目概述
+
+**项目名称**：AI工作流可视化编排平台（纯前端版本）  
+**技术栈**：Vue 3 + TypeScript + Pinia + **Element Plus** + Vue Flow + LocalForage  
+**项目目标**：构建完整的纯前端工作流编排器，支持本地存储和完整的工作流管理
+
+---
+
+## 🏗️ 整体架构设计
+
+### 项目结构
+```
+src/
+├── components/          # 通用组件
+│   ├── common/         # 基础UI组件
+│   ├── workflow/       # 工作流相关组件
+│   └── nodes/          # 节点类型组件
+├── views/              # 页面组件
+├── stores/             # Pinia状态管理
+├── types/              # TypeScript类型定义
+├── utils/              # 工具函数
+├── hooks/              # Vue 3组合式函数
+├── core/               # 核心引擎
+│   ├── workflow-executor.ts
+│   ├── parameter-resolver.ts
+│   ├── node-registry.ts
+│   └── storage-manager.ts
+├── constants/          # 常量定义
+└── assets/             # 静态资源
+```
+
+---
+
+## 🎯 核心模块设计
+
+### 1. 类型定义系统 (TypeScript) - **保持不变**
+
+```typescript
+// types/workflow.ts
+export type NodeType = 'start' | 'ai-chat' | 'condition' | 'end' | 'data-process' | 'text-output';
+
+export type NodeStatus = 'idle' | 'executing' | 'success' | 'failed';
+
+export interface Position {
+  x: number;
+  y: number;
+}
+
+export interface WorkflowNode {
+  id: string;
+  type: NodeType;
+  position: Position;
+  data: Record<string, any>;
+  width?: number;
+  height?: number;
+  status?: NodeStatus;
+}
+
+export interface Edge {
+  id: string;
+  source: string;
+  target: string;
+  sourceHandle?: string;
+  targetHandle?: string;
+  label?: string;
+}
+
+// ... 其他类型定义保持不变
+```
+
+### 2. 状态管理 (Pinia) - **保持不变**
+
+```typescript
+// stores/workflow.ts
+export const useWorkflowStore = defineStore('workflow', () => {
+  // State - 保持不变
+  const currentWorkflow = ref<WorkflowState>(createEmptyWorkflow());
+  const workflows = ref<WorkflowState[]>([]);
+  const templates = ref<WorkflowTemplate[]>([]);
+  const settings = ref<AppSettings>({
+    autoSave: true,
+    defaultZoom: 1,
+    theme: 'light',
+    language: 'zh-CN'
+  });
+  
+  // ... 所有状态和逻辑保持不变
+});
+```
+
+### 3. 核心执行引擎 - **保持不变**
+
+```typescript
+// core/workflow-executor.ts
+export class WorkflowExecutor {
+  // ... 所有执行逻辑保持不变
+}
+
+// core/storage-manager.ts  
+export class StorageManager {
+  // ... 所有存储逻辑保持不变
+}
+
+// core/node-registry.ts
+export class NodeRegistry {
+  // ... 所有节点注册逻辑保持不变
+}
+```
+
+### 4. UI组件 - **修改为Element Plus**
+
+#### 4.1 主应用布局
+```vue
+<!-- App.vue -->
+<template>
+  <el-config-provider :locale="zhCn">
+    <div class="app-layout">
+      <el-container class="app-container">
+        <el-header class="app-header">
+          <Toolbar />
+        </el-header>
+        
+        <el-container class="main-container">
+          <el-aside class="node-palette" width="280px">
+            <NodePalette />
+          </el-aside>
+          
+          <el-main class="main-content">
+            <WorkflowCanvas />
+          </el-main>
+          
+          <el-aside 
+            class="config-panel" 
+            width="320px" 
+            v-if="selectedNode"
+          >
+            <ConfigPanel />
+          </el-aside>
+        </el-container>
+        
+        <el-footer class="execution-panel" height="200px">
+          <ExecutionPanel />
+        </el-footer>
+      </el-container>
+    </div>
+  </el-config-provider>
+</template>
+
+<script setup lang="ts">
+import { ElConfigProvider } from 'element-plus';
+import zhCn from 'element-plus/es/locale/lang/zh-cn';
+import { storeToRefs } from 'pinia';
+import { useWorkflowStore } from '@/stores/workflow';
+
+const workflowStore = useWorkflowStore();
+const { selectedNode } = storeToRefs(workflowStore);
+</script>
+
+<style scoped>
+.app-layout {
+  height: 100vh;
+}
+
+.app-container {
+  height: 100%;
+}
+
+.app-header {
+  background: var(--el-bg-color);
+  border-bottom: 1px solid var(--el-border-color);
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+}
+
+.node-palette {
+  background: var(--el-bg-color-page);
+  border-right: 1px solid var(--el-border-color);
+}
+
+.main-content {
+  background: var(--el-bg-color);
+  padding: 0;
+}
+
+.config-panel {
+  background: var(--el-bg-color);
+  border-left: 1px solid var(--el-border-color);
+}
+
+.execution-panel {
+  background: var(--el-bg-color);
+  border-top: 1px solid var(--el-border-color);
+  padding: 0;
+}
+</style>
+```
+
+#### 4.2 工作流管理页面
+```vue
+<!-- views/WorkflowManager.vue -->
+<template>
+  <div class="workflow-manager">
+    <div class="manager-header">
+      <el-space>
+        <el-button type="primary" @click="createNewWorkflow">
+          <el-icon><Plus /></el-icon>
+          新建工作流
+        </el-button>
+        <el-button @click="importWorkflow">
+          <el-icon><Upload /></el-icon>
+          导入工作流
+        </el-button>
+        <el-input
+          v-model="searchKeyword"
+          placeholder="搜索工作流..."
+          style="width: 300px"
+          :prefix-icon="Search"
+        />
+      </el-space>
+    </div>
+
+    <el-divider />
+
+    <el-row :gutter="16">
+      <el-col 
+        v-for="workflow in filteredWorkflows" 
+        :key="workflow.id"
+        :xs="24" :sm="12" :md="8" :lg="6" :xl="4"
+      >
+        <el-card 
+          class="workflow-card"
+          :body-style="{ padding: '0px' }"
+          @click="openWorkflow(workflow.id)"
+        >
+          <div class="card-content">
+            <div class="card-header">
+              <h3>{{ workflow.name }}</h3>
+              <el-dropdown @click.stop>
+                <el-button text>
+                  <el-icon><MoreFilled /></el-icon>
+                </el-button>
+                <template #dropdown>
+                  <el-dropdown-menu>
+                    <el-dropdown-item @click="duplicateWorkflow(workflow.id)">
+                      <el-icon><CopyDocument /></el-icon>
+                      复制
+                    </el-dropdown-item>
+                    <el-dropdown-item @click="exportSingleWorkflow(workflow)">
+                      <el-icon><Download /></el-icon>
+                      导出
+                    </el-dropdown-item>
+                    <el-dropdown-item 
+                      @click="deleteWorkflow(workflow.id)" 
+                      class="danger-item"
+                    >
+                      <el-icon><Delete /></el-icon>
+                      删除
+                    </el-dropdown-item>
+                  </el-dropdown-menu>
+                </template>
+              </el-dropdown>
+            </div>
+            
+            <div class="card-body">
+              <p class="description">{{ workflow.description || '暂无描述' }}</p>
+              <div class="stats">
+                <span>节点: {{ workflow.nodes.length }}</span>
+                <span>连接: {{ workflow.edges.length }}</span>
+              </div>
+              <div class="metadata">
+                更新于: {{ formatDate(workflow.metadata.updatedAt) }}
+              </div>
+            </div>
+          </div>
+        </el-card>
+      </el-col>
+    </el-row>
+
+    <!-- 导入对话框 -->
+    <el-dialog
+      v-model="showImportModal"
+      title="导入工作流"
+      width="600px"
+      @close="showImportModal = false"
+    >
+      <el-input
+        v-model="importJson"
+        type="textarea"
+        placeholder="粘贴工作流JSON数据..."
+        :rows="10"
+      />
+      <template #footer>
+        <el-button @click="showImportModal = false">取消</el-button>
+        <el-button type="primary" @click="handleImport">导入</el-button>
+      </template>
+    </el-dialog>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, computed } from 'vue';
+import { useRouter } from 'vue-router';
+import { storeToRefs } from 'pinia';
+import { useWorkflowStore } from '@/stores/workflow';
+import { ElMessage } from 'element-plus';
+import {
+  Plus,
+  Upload,
+  Search,
+  MoreFilled,
+  CopyDocument,
+  Download,
+  Delete
+} from '@element-plus/icons-vue';
+
+// ... 所有业务逻辑保持不变
+</script>
+
+<style scoped>
+.workflow-manager {
+  padding: 24px;
+}
+
+.manager-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.workflow-card {
+  margin-bottom: 16px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.workflow-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--el-box-shadow-light);
+}
+
+.card-content {
+  padding: 16px;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.card-header h3 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.description {
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+  margin: 0 0 12px 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.stats {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--el-text-color-placeholder);
+  margin-bottom: 8px;
+}
+
+.metadata {
+  font-size: 11px;
+  color: var(--el-text-color-disabled);
+  text-align: right;
+}
+
+.danger-item {
+  color: var(--el-color-error);
+}
+</style>
+```
+
+#### 4.3 配置面板组件
+```vue
+<!-- components/ConfigPanel.vue -->
+<template>
+  <el-drawer
+    v-model="visible"
+    title="节点配置"
+    direction="rtl"
+    size="400px"
+  >
+    <div v-if="selectedNode" class="config-content">
+      <component
+        :is="getConfigComponent(selectedNode.type)"
+        :node="selectedNode"
+        @update:config="onConfigUpdate"
+      />
+    </div>
+  </el-drawer>
+</template>
+
+<script setup lang="ts">
+import { useUIStore } from '@/stores/ui-store';
+import { useWorkflowStore } from '@/stores/workflow-store';
+import { useHistoryStore } from '@/stores/history-store';
+import { computed } from 'vue';
+
+// ... 所有业务逻辑保持不变
+</script>
+
+<style scoped>
+.config-content {
+  padding: 0 16px;
+}
+</style>
+```
+
+#### 4.4 AI节点配置表单
+```vue
+<!-- components/panel/configs/ai-chat-config.vue -->
+<template>
+  <el-form label-position="top">
+    <el-form-item label="AI模型">
+      <el-select v-model="formState.model">
+        <el-option value="gpt-3.5-turbo" label="GPT-3.5 Turbo" />
+        <el-option value="gpt-4" label="GPT-4" />
+      </el-select>
+    </el-form-item>
+    
+    <el-form-item label="提示词">
+      <el-input
+        v-model="formState.prompt"
+        type="textarea"
+        :rows="4"
+        placeholder="输入对话提示词..."
+      />
+    </el-form-item>
+    
+    <el-form-item label="温度">
+      <div class="slider-container">
+        <el-slider
+          v-model="formState.temperature"
+          :min="0"
+          :max="1"
+          :step="0.1"
+          show-stops
+        />
+        <span class="slider-value">{{ formState.temperature }}</span>
+      </div>
+    </el-form-item>
+  </el-form>
+</template>
+
+<script setup lang="ts">
+import { computed } from 'vue';
+
+interface Props {
+  node: WorkflowNode;
+}
+
+const props = defineProps<Props>();
+
+const formState = computed({
+  get: () => props.node.data,
+  set: (value) => {
+    emit('update:config', value);
+  }
+});
+
+const emit = defineEmits<{
+  'update:config': [value: any];
+}>();
+</script>
+
+<style scoped>
+.slider-container {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.slider-value {
+  min-width: 30px;
+  text-align: center;
+  font-size: 14px;
+  color: var(--el-text-color-regular);
+}
+</style>
+```
+
+#### 4.5 工具栏组件
+```vue
+<!-- components/Toolbar.vue -->
+<template>
+  <div class="toolbar">
+    <el-space>
+      <el-button @click="handleSave">
+        <el-icon><Document /></el-icon>
+        保存
+      </el-button>
+      <el-button type="primary" @click="handleRun" :disabled="!canExecute">
+        <el-icon><VideoPlay /></el-icon>
+        {{ isExecuting ? '执行中...' : '运行' }}
+      </el-button>
+      <el-button @click="handleUndo" :disabled="!canUndo">
+        <el-icon><RefreshLeft /></el-icon>
+        撤销
+      </el-button>
+      <el-button @click="handleRedo" :disabled="!canRedo">
+        <el-icon><RefreshRight /></el-icon>
+        重做
+      </el-button>
+      <el-button-group>
+        <el-button @click="handleZoomOut">
+          <el-icon><Minus /></el-icon>
+        </el-button>
+        <el-button>{{ Math.round(zoom * 100) }}%</el-button>
+        <el-button @click="handleZoomIn">
+          <el-icon><Plus /></el-icon>
+        </el-button>
+      </el-button-group>
+    </el-space>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { storeToRefs } from 'pinia';
+import { useWorkflowStore } from '@/stores/workflow';
+import { useHistoryStore } from '@/stores/history';
+import {
+  Document,
+  VideoPlay,
+  RefreshLeft,
+  RefreshRight,
+  Minus,
+  Plus
+} from '@element-plus/icons-vue';
+
+// ... 所有业务逻辑保持不变
+</script>
+```
+
+### 5. 节点面板组件
+```vue
+<!-- components/NodePalette.vue -->
+<template>
+  <div class="node-palette">
+    <el-collapse v-model="activeCategories">
+      <el-collapse-item 
+        v-for="category in categories" 
+        :key="category.name"
+        :title="category.name"
+      >
+        <div class="node-list">
+          <div
+            v-for="nodeDef in category.nodes"
+            :key="nodeDef.type"
+            class="node-item"
+            draggable="true"
+            @dragstart="onDragStart(nodeDef, $event)"
+          >
+            <div class="node-icon">
+              <el-icon><component :is="nodeDef.icon" /></el-icon>
+            </div>
+            <div class="node-info">
+              <div class="node-name">{{ nodeDef.name }}</div>
+              <div class="node-desc">{{ nodeDef.description }}</div>
+            </div>
+          </div>
+        </div>
+      </el-collapse-item>
+    </el-collapse>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { NodeRegistry } from '@/core/node-registry';
+import { ref, computed } from 'vue';
+import {
+  VideoPlay,
+  ChatDotRound,
+  Operation,
+  CircleClose,
+  DataLine
+} from '@element-plus/icons-vue';
+
+// 图标映射
+const iconMap = {
+  'start': VideoPlay,
+  'ai-chat': ChatDotRound,
+  'condition': Operation,
+  'end': CircleClose,
+  'data-process': DataLine
+};
+
+// ... 所有业务逻辑保持不变，只需更新图标映射
+</script>
+```
+
+---
+
+## 📦 依赖包配置更新
+
+```json
+{
+  "dependencies": {
+    "vue": "^3.3.0",
+    "vue-router": "^4.2.0",
+    "pinia": "^2.1.0",
+    "element-plus": "^2.3.8",
+    "@element-plus/icons-vue": "^2.1.0",
+    "@vue-flow/core": "^1.0.0",
+    "@vue-flow/additional-components": "^1.0.0",
+    "localforage": "^1.10.0",
+    "uuid": "^9.0.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^4.0.0",
+    "typescript": "^5.0.0",
+    "vite": "^4.0.0"
+  }
+}
+```
+
+---
+
+## 🎯 修改总结
+
+### 主要变更：
+1. **UI组件库**：Ant Design Vue → Element Plus
+2. **图标系统**：使用 `@element-plus/icons-vue`
+3. **布局组件**：`a-layout` → `el-container` 系列
+4. **表单组件**：`a-form` → `el-form` 系列
+5. **弹窗组件**：`a-modal`/`a-drawer` → `el-dialog`/`el-drawer`
+6. **消息提示**：`message` → `ElMessage`
+
+### 保持不变：
+- 所有业务逻辑
+- 状态管理 (Pinia)
+- 核心引擎 (工作流执行、存储管理、节点注册)
+- 类型定义
+- 项目结构
+- 数据流设计
+
+这样的修改确保了项目的核心功能完全不受影响，只是UI层从Ant Design迁移到Element Plus，保持了高置信度的架构设计。

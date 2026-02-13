@@ -1,0 +1,829 @@
+# AI工作流可视化编排平台 - 模块化架构设计 (Element Plus版本)
+
+## 🏗️ 模块划分架构
+
+### 模块依赖关系图
+```
+App (入口)
+├── Core (核心模块) - 保持不变
+│   ├── WorkflowEngine (工作流引擎)
+│   ├── StorageManager (存储管理)
+│   └── NodeRegistry (节点注册)
+├── Store (状态管理) - 保持不变
+│   ├── WorkflowStore
+│   ├── UIStore
+│   └── HistoryStore
+├── UI (界面模块) - Element Plus
+│   ├── Layout (布局)
+│   ├── Canvas (画布)
+│   ├── NodePalette (节点面板)
+│   ├── ConfigPanel (配置面板)
+│   └── Toolbar (工具栏)
+└── Nodes (节点模块) - 保持不变
+    ├── BaseNode (基础节点)
+    ├── AINodes (AI节点)
+    ├── LogicNodes (逻辑节点)
+    └── DataNodes (数据节点)
+```
+
+---
+
+## 📦 模块详细设计
+
+### 1. Core 核心模块 - **完全保持不变**
+
+#### 1.1 WorkflowEngine (工作流引擎)
+```typescript
+// core/workflow-engine/types.ts - 保持不变
+export interface ExecutionContext {
+  [nodeId: string]: NodeExecutionResult;
+}
+
+export interface NodeExecutionResult {
+  success: boolean;
+  output: any;
+  error?: string;
+  executionTime: number;
+  metadata?: Record<string, any>;
+}
+```
+
+```typescript
+// core/workflow-engine/executor.ts - 保持不变
+export class WorkflowExecutor {
+  private context: ExecutionContext = {};
+  
+  async execute(nodes: WorkflowNode[], edges: Edge[]): Promise<ExecutionContext> {
+    // 拓扑排序和执行逻辑 - 完全保持不变
+    const sortedNodes = this.topologicalSort(nodes, edges);
+    
+    for (const node of sortedNodes) {
+      await this.executeNode(node, edges);
+    }
+    
+    return this.context;
+  }
+  
+  // ... 所有方法保持不变
+}
+```
+
+#### 1.2 NodeRegistry (节点注册中心) - 保持不变
+```typescript
+// core/node-registry/registry.ts - 保持不变
+export class NodeRegistry {
+  private static nodeDefinitions = new Map<NodeType, NodeDefinition>();
+  
+  static registerNode(definition: NodeDefinition): void {
+    this.nodeDefinitions.set(definition.type, definition);
+  }
+  
+  // ... 所有方法保持不变
+}
+```
+
+#### 1.3 StorageManager (存储管理) - 保持不变
+```typescript
+// core/storage/storage-manager.ts - 保持不变
+export class StorageManager {
+  async saveWorkflow(workflow: WorkflowState): Promise<void> {
+    // 保存逻辑保持不变
+  }
+  
+  // ... 所有方法保持不变
+}
+```
+
+### 2. Store 状态管理模块 - **完全保持不变**
+
+#### 2.1 WorkflowStore (工作流状态)
+```typescript
+// stores/workflow-store.ts - 保持不变
+export const useWorkflowStore = defineStore('workflow', () => {
+  // State - 保持不变
+  const currentWorkflow = ref<WorkflowState>(createEmptyWorkflow());
+  const workflows = ref<WorkflowState[]>([]);
+  const executionContext = ref<ExecutionContext>({});
+  const isExecuting = ref(false);
+  
+  // Actions - 保持不变
+  const executeWorkflow = async () => {
+    const executor = new WorkflowExecutor();
+    const result = await executor.execute(
+      currentWorkflow.value.nodes,
+      currentWorkflow.value.edges
+    );
+    executionContext.value = result;
+  };
+  
+  // ... 所有状态和方法保持不变
+});
+```
+
+#### 2.2 UIStore (界面状态) - 保持不变
+```typescript
+// stores/ui-store.ts - 保持不变
+export const useUIStore = defineStore('ui', () => {
+  const selectedNodeId = ref<string | null>(null);
+  const sidebarVisible = ref(true);
+  
+  // ... 所有状态和方法保持不变
+});
+```
+
+#### 2.3 HistoryStore (历史记录) - 保持不变
+```typescript
+// stores/history-store.ts - 保持不变
+export const useHistoryStore = defineStore('history', () => {
+  const past = ref<WorkflowState[]>([]);
+  const future = ref<WorkflowState[]>([]);
+  
+  // ... 所有状态和方法保持不变
+});
+```
+
+### 3. UI 界面模块 - **修改为Element Plus**
+
+#### 3.1 Layout (布局组件)
+```vue
+<!-- ui/layout/AppLayout.vue -->
+<template>
+  <el-config-provider :locale="zhCn">
+    <div class="app-layout">
+      <el-container>
+        <el-header class="app-header">
+          <Toolbar />
+        </el-header>
+        
+        <el-container class="main-container">
+          <el-aside v-if="ui.sidebarVisible" width="280px" class="node-palette">
+            <NodePalette />
+          </el-aside>
+          
+          <el-main class="main-content">
+            <WorkflowCanvas />
+          </el-main>
+          
+          <el-aside 
+            v-if="ui.configPanelVisible && ui.selectedNode" 
+            width="320px" 
+            class="config-panel"
+          >
+            <ConfigPanel />
+          </el-aside>
+        </el-container>
+        
+        <el-footer class="execution-panel" height="200px">
+          <ExecutionPanel />
+        </el-footer>
+      </el-container>
+    </div>
+  </el-config-provider>
+</template>
+
+<script setup lang="ts">
+import { ElConfigProvider } from 'element-plus';
+import zhCn from 'element-plus/es/locale/lang/zh-cn';
+import { useUIStore } from '@/stores/ui-store';
+
+const ui = useUIStore();
+</script>
+
+<style scoped>
+.app-layout {
+  height: 100vh;
+}
+
+.app-header {
+  background: var(--el-bg-color);
+  border-bottom: 1px solid var(--el-border-color);
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+}
+
+.node-palette {
+  background: var(--el-bg-color-page);
+  border-right: 1px solid var(--el-border-color);
+}
+
+.main-content {
+  background: var(--el-bg-color);
+  padding: 0;
+}
+
+.config-panel {
+  background: var(--el-bg-color);
+  border-left: 1px solid var(--el-border-color);
+}
+
+.execution-panel {
+  background: var(--el-bg-color);
+  border-top: 1px solid var(--el-border-color);
+  padding: 0;
+}
+</style>
+```
+
+#### 3.2 Canvas (画布组件)
+```vue
+<!-- ui/canvas/WorkflowCanvas.vue -->
+<template>
+  <VueFlow
+    v-model:nodes="workflow.nodes"
+    v-model:edges="workflow.edges"
+    @node-click="onNodeClick"
+    @connect="onConnect"
+    @drop="onDrop"
+    @drag-over="onDragOver"
+  >
+    <Background />
+    <Controls />
+    
+    <!-- 动态节点渲染 - 保持不变 -->
+    <template v-for="nodeType in nodeTypes" #[`node-${nodeType}`]="props">
+      <component 
+        :is="getNodeComponent(nodeType)" 
+        v-bind="props" 
+      />
+    </template>
+  </VueFlow>
+</template>
+
+<script setup lang="ts">
+import { useWorkflowStore } from '@/stores/workflow-store';
+import { useUIStore } from '@/stores/ui-store';
+import { useHistoryStore } from '@/stores/history-store';
+
+// 业务逻辑完全保持不变
+const workflow = useWorkflowStore();
+const ui = useUIStore();
+const history = useHistoryStore();
+
+const nodeTypes = ['start', 'ai-chat', 'condition', 'end'];
+
+const getNodeComponent = (type: NodeType) => {
+  return defineAsyncComponent(() => 
+    import(`@/ui/nodes/${type}-node.vue`)
+  );
+};
+
+const onNodeClick = (event: NodeMouseEvent) => {
+  ui.selectNode(event.node.id);
+};
+
+const onConnect = (connection: Connection) => {
+  workflow.addEdge(createEdge(connection));
+  history.pushState();
+};
+
+const onDrop = (event: DragEvent) => {
+  const type = event.dataTransfer?.getData('application/node-type');
+  const position = { x: event.clientX, y: event.clientY };
+  
+  if (type) {
+    workflow.addNode(type as NodeType, position);
+    history.pushState();
+  }
+};
+
+const onDragOver = (event: DragEvent) => {
+  event.preventDefault();
+  event.dataTransfer!.dropEffect = 'move';
+};
+</script>
+```
+
+#### 3.3 NodePalette (节点面板)
+```vue
+<!-- ui/palette/NodePalette.vue -->
+<template>
+  <div class="node-palette">
+    <div class="categories">
+      <el-collapse v-model="activeCategories">
+        <el-collapse-item 
+          v-for="category in categories" 
+          :key="category.name"
+          :title="category.name"
+        >
+          <div class="node-list">
+            <div
+              v-for="nodeDef in category.nodes"
+              :key="nodeDef.type"
+              class="node-item"
+              draggable="true"
+              @dragstart="onDragStart(nodeDef, $event)"
+            >
+              <div class="node-icon">
+                <el-icon><component :is="nodeDef.icon" /></el-icon>
+              </div>
+              <div class="node-info">
+                <div class="node-name">{{ nodeDef.name }}</div>
+                <div class="node-desc">{{ nodeDef.description }}</div>
+              </div>
+            </div>
+          </div>
+        </el-collapse-item>
+      </el-collapse>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { NodeRegistry } from '@/core/node-registry';
+import { ref, computed } from 'vue';
+import {
+  VideoPlay,
+  ChatDotRound,
+  Operation,
+  CircleClose,
+  DataLine
+} from '@element-plus/icons-vue';
+
+// 图标映射更新为Element Plus图标
+const iconMap = {
+  'start': VideoPlay,
+  'ai-chat': ChatDotRound,
+  'condition': Operation,
+  'end': CircleClose,
+  'data-process': DataLine
+};
+
+const activeCategories = ref(['ai', 'logic']);
+
+// 业务逻辑保持不变
+const categories = computed(() => {
+  const allNodes = NodeRegistry.getAllDefinitions();
+  const grouped: Record<string, NodeDefinition[]> = {};
+  
+  allNodes.forEach(node => {
+    if (!grouped[node.category]) {
+      grouped[node.category] = [];
+    }
+    // 添加图标映射
+    grouped[node.category].push({
+      ...node,
+      icon: iconMap[node.type] || Operation
+    });
+  });
+  
+  return Object.entries(grouped).map(([name, nodes]) => ({
+    name: getCategoryName(name),
+    nodes
+  }));
+});
+
+const onDragStart = (nodeDef: NodeDefinition, event: DragEvent) => {
+  event.dataTransfer?.setData('application/node-type', nodeDef.type);
+};
+
+const getCategoryName = (category: string) => {
+  const names: Record<string, string> = {
+    'ai': 'AI节点',
+    'logic': '逻辑节点',
+    'data': '数据节点',
+    'basic': '基础节点'
+  };
+  return names[category] || category;
+};
+</script>
+
+<style scoped>
+.node-palette {
+  padding: 16px;
+  height: 100%;
+  overflow-y: auto;
+}
+
+.categories {
+  width: 100%;
+}
+
+.node-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.node-item {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  border: 1px solid var(--el-border-color);
+  border-radius: 6px;
+  cursor: grab;
+  background: var(--el-bg-color);
+  transition: all 0.2s;
+}
+
+.node-item:hover {
+  border-color: var(--el-color-primary);
+  box-shadow: var(--el-box-shadow-light);
+}
+
+.node-icon {
+  margin-right: 12px;
+  color: var(--el-color-primary);
+}
+
+.node-info {
+  flex: 1;
+}
+
+.node-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--el-text-color-primary);
+}
+
+.node-desc {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+</style>
+```
+
+#### 3.4 ConfigPanel (配置面板)
+```vue
+<!-- ui/panel/ConfigPanel.vue -->
+<template>
+  <el-drawer
+    v-model="visible"
+    title="节点配置"
+    direction="rtl"
+    size="400px"
+  >
+    <div v-if="selectedNode" class="config-content">
+      <component
+        :is="getConfigComponent(selectedNode.type)"
+        :node="selectedNode"
+        @update:config="onConfigUpdate"
+      />
+    </div>
+  </el-drawer>
+</template>
+
+<script setup lang="ts">
+import { useUIStore } from '@/stores/ui-store';
+import { useWorkflowStore } from '@/stores/workflow-store';
+import { useHistoryStore } from '@/stores/history-store';
+import { computed } from 'vue';
+
+// 业务逻辑完全保持不变
+const ui = useUIStore();
+const workflow = useWorkflowStore();
+const history = useHistoryStore();
+
+const visible = computed({
+  get: () => !!ui.selectedNode,
+  set: (value) => {
+    if (!value) ui.selectNode(null);
+  }
+});
+
+const selectedNode = computed(() => ui.selectedNode);
+
+const getConfigComponent = (type: NodeType) => {
+  return defineAsyncComponent(() => 
+    import(`@/ui/panel/configs/${type}-config.vue`)
+  );
+};
+
+const onConfigUpdate = (config: any) => {
+  if (selectedNode.value) {
+    workflow.updateNodeData(selectedNode.value.id, config);
+    history.pushState();
+  }
+};
+</script>
+
+<style scoped>
+.config-content {
+  padding: 0 16px;
+}
+</style>
+```
+
+#### 3.5 Toolbar (工具栏)
+```vue
+<!-- ui/toolbar/MainToolbar.vue -->
+<template>
+  <div class="toolbar">
+    <el-space>
+      <el-button @click="handleSave">
+        <el-icon><Document /></el-icon>
+        保存
+      </el-button>
+      <el-button 
+        type="primary" 
+        @click="executeWorkflow" 
+        :disabled="!canExecute"
+        :loading="isExecuting"
+      >
+        <el-icon><VideoPlay /></el-icon>
+        {{ isExecuting ? '执行中...' : '执行工作流' }}
+      </el-button>
+      <el-button @click="handleUndo" :disabled="!canUndo">
+        <el-icon><RefreshLeft /></el-icon>
+        撤销
+      </el-button>
+      <el-button @click="handleRedo" :disabled="!canRedo">
+        <el-icon><RefreshRight /></el-icon>
+        重做
+      </el-button>
+      <el-button-group>
+        <el-button @click="handleZoomOut">
+          <el-icon><Minus /></el-icon>
+        </el-button>
+        <el-button>{{ Math.round(zoom * 100) }}%</el-button>
+        <el-button @click="handleZoomIn">
+          <el-icon><Plus /></el-icon>
+        </el-button>
+      </el-button-group>
+    </el-space>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { computed } from 'vue';
+import { useWorkflowStore } from '@/stores/workflow-store';
+import { useHistoryStore } from '@/stores/history-store';
+import {
+  Document,
+  VideoPlay,
+  RefreshLeft,
+  RefreshRight,
+  Minus,
+  Plus
+} from '@element-plus/icons-vue';
+
+// 业务逻辑完全保持不变
+const workflow = useWorkflowStore();
+const history = useHistoryStore();
+
+const canExecute = computed(() => 
+  !workflow.isExecuting && workflow.currentWorkflow.nodes.length > 0
+);
+
+const executeWorkflow = async () => {
+  try {
+    await workflow.executeWorkflow();
+  } catch (error) {
+    ElMessage.error('执行失败: ' + error.message);
+  }
+};
+
+const handleSave = () => {
+  workflow.saveWorkflow();
+  ElMessage.success('保存成功');
+};
+
+const handleUndo = () => {
+  history.undo();
+};
+
+const handleRedo = () => {
+  history.redo();
+};
+
+const handleZoomIn = () => {
+  // 缩放逻辑保持不变
+};
+
+const handleZoomOut = () => {
+  // 缩放逻辑保持不变
+};
+</script>
+
+<style scoped>
+.toolbar {
+  display: flex;
+  align-items: center;
+  height: 100%;
+}
+</style>
+```
+
+### 4. Nodes 节点模块 - **完全保持不变**
+
+#### 4.1 BaseNode (基础节点) - 保持不变
+```vue
+<!-- ui/nodes/base/BaseNode.vue - 保持不变 -->
+<template>
+  <div 
+    :class="['workflow-node', `node-${type}`, `status-${status}`]"
+    @click="onClick"
+  >
+    <!-- 节点内容完全保持不变 -->
+  </div>
+</template>
+
+<script setup lang="ts">
+// 所有逻辑保持不变
+</script>
+
+<style scoped>
+/* 所有样式保持不变 */
+</style>
+```
+
+#### 4.2 节点配置表单 - **修改为Element Plus**
+
+```vue
+<!-- ui/panel/configs/ai-chat-config.vue -->
+<template>
+  <el-form label-position="top">
+    <el-form-item label="AI模型">
+      <el-select v-model="formState.model" placeholder="选择AI模型">
+        <el-option label="GPT-3.5 Turbo" value="gpt-3.5-turbo" />
+        <el-option label="GPT-4" value="gpt-4" />
+      </el-select>
+    </el-form-item>
+    
+    <el-form-item label="提示词">
+      <el-input
+        v-model="formState.prompt"
+        type="textarea"
+        :rows="4"
+        placeholder="输入对话提示词..."
+        resize="none"
+      />
+    </el-form-item>
+    
+    <el-form-item label="温度">
+      <div class="slider-container">
+        <el-slider
+          v-model="formState.temperature"
+          :min="0"
+          :max="1"
+          :step="0.1"
+          show-stops
+          :show-tooltip="true"
+        />
+        <span class="slider-value">{{ formState.temperature }}</span>
+      </div>
+    </el-form-item>
+  </el-form>
+</template>
+
+<script setup lang="ts">
+import { computed } from 'vue';
+
+// 业务逻辑完全保持不变
+interface Props {
+  node: WorkflowNode;
+}
+
+const props = defineProps<Props>();
+
+const formState = computed({
+  get: () => props.node.data,
+  set: (value) => {
+    emit('update:config', value);
+  }
+});
+
+const emit = defineEmits<{
+  'update:config': [value: any];
+}>();
+</script>
+
+<style scoped>
+.slider-container {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.slider-value {
+  min-width: 30px;
+  text-align: center;
+  font-size: 14px;
+  color: var(--el-text-color-regular);
+}
+</style>
+```
+
+#### 4.3 节点执行器注册 - **保持不变**
+
+```typescript
+// nodes/ai/executors.ts - 保持不变
+export const aiChatExecutor: NodeExecutor = async (node, context) => {
+  const { prompt, model, temperature } = node.data;
+  
+  // 所有执行逻辑保持不变
+  const resolvedPrompt = ParameterResolver.resolveTemplate(prompt, context);
+  
+  await new Promise(resolve => setTimeout(resolve, 1000));
+  
+  return {
+    response: `AI响应: ${resolvedPrompt}`,
+    model,
+    temperature,
+    usage: { total_tokens: 100 }
+  };
+};
+
+// 注册逻辑保持不变
+NodeRegistry.registerNode({
+  type: 'ai-chat',
+  name: 'AI对话',
+  description: '调用AI模型进行对话',
+  category: 'ai',
+  icon: 'ChatDotRound',
+  inputs: 1,
+  outputs: 1,
+  defaultData: {
+    prompt: '',
+    model: 'gpt-3.5-turbo',
+    temperature: 0.7
+  },
+  executor: aiChatExecutor
+});
+```
+
+---
+
+## 🔄 数据流设计 - **完全保持不变**
+
+### 数据流动示意图
+```
+用户操作 → UI组件 → Store Action → Core模块 → Store Mutation → UI更新
+     ↓
+   状态变化 → 历史记录 → 本地存储
+```
+
+### 典型数据流示例 - 保持不变
+
+#### 1. 添加节点数据流 - 保持不变
+```
+1. 用户从NodePalette拖拽节点
+2. NodePalette发出dragstart事件  
+3. WorkflowCanvas监听drop事件
+4. Canvas调用workflowStore.addNode()
+5. Store创建新节点并更新状态
+6. Store调用historyStore.pushState()
+7. UI自动重新渲染显示新节点
+```
+
+#### 2. 执行工作流数据流 - 保持不变
+```
+1. 用户点击执行按钮
+2. Toolbar调用workflowStore.executeWorkflow()
+3. Store创建WorkflowExecutor实例
+4. Executor进行拓扑排序并依次执行节点
+5. 每个节点通过NodeRegistry获取执行器
+6. 执行结果更新到executionContext
+7. UI通过computed属性实时显示执行状态
+```
+
+---
+
+## 📁 完整目录结构 - **保持不变**
+
+```
+src/
+├── core/                           # 核心模块 - 保持不变
+│   ├── workflow-engine/           
+│   ├── node-registry/             
+│   ├── storage/                   
+│   └── utils/                     
+├── stores/                        # 状态管理 - 保持不变
+│   ├── workflow-store.ts
+│   ├── ui-store.ts
+│   ├── history-store.ts
+│   └── index.ts
+├── ui/                            # 界面模块 - 修改为Element Plus
+│   ├── layout/
+│   ├── canvas/
+│   ├── palette/
+│   ├── panel/
+│   ├── toolbar/
+│   └── nodes/                     # 节点组件 - 保持不变
+├── types/                         # 类型定义 - 保持不变
+└── main.ts                       # 应用入口
+```
+
+---
+
+## 🎯 修改总结
+
+### 主要变更（仅UI层）：
+1. **UI组件库**：Ant Design Vue → Element Plus
+2. **图标系统**：使用 `@element-plus/icons-vue`
+3. **布局组件**：`a-layout` → `el-container` 系列
+4. **表单组件**：`a-form` → `el-form` 系列
+5. **弹窗组件**：`a-modal`/`a-drawer` → `el-dialog`/`el-drawer`
+6. **消息提示**：`message` → `ElMessage`
+
+### 完全保持不变：
+- ✅ 所有业务逻辑
+- ✅ 状态管理 (Pinia)
+- ✅ 核心引擎 (工作流执行、存储管理、节点注册)
+- ✅ 类型定义
+- ✅ 项目结构
+- ✅ 数据流设计
+- ✅ 节点执行逻辑
+- ✅ 工作流执行原理
+
+这样的修改确保了项目的**核心功能完全不受影响**，只是UI层从Ant Design迁移到Element Plus，所有业务逻辑和数据流都保持原样。
