@@ -40,8 +40,8 @@
 </template>
 
 <script setup lang="ts">
-import { VueFlow, type Connection, type NodeMouseEvent } from '@vue-flow/core'
-import { defineAsyncComponent, ref, computed } from 'vue' // 🛠️ 修复3: 导入 ref 和 computed
+import { VueFlow, useVueFlow, type Connection, type NodeMouseEvent } from '@vue-flow/core'
+import { defineAsyncComponent, ref, computed } from 'vue'
 import { useWorkflowStore } from '@/stores/workflow-store'
 import { useUIStore } from '@/stores/ui-store'
 import { useHistoryStore } from '@/stores/history-store'
@@ -52,6 +52,9 @@ const workflow = useWorkflowStore()
 const ui = useUIStore()
 const history = useHistoryStore()
 
+// 使用 VueFlow 的 API 来转换坐标
+const { project } = useVueFlow()
+
 // 检查是否有当前工作流，避免空值错误
 const hasCurrentWorkflow = computed(() => {
   return workflow.currentWorkflow !== null
@@ -59,11 +62,6 @@ const hasCurrentWorkflow = computed(() => {
 
 // 当前选中的待删除元素
 const elementToDelete = ref<{type: 'node' | 'edge'; id: string} | null>(null)
-
-// 进入编辑模式时的提示信息
-const editModeTooltip = computed(() => {
-  return ui.isEditMode ? '编辑模式：双击元素可删除' : ''
-})
 
 // 拖拽状态管理
 const isDragOver = ref(false)
@@ -98,7 +96,7 @@ const onNodeDblClick = (event: NodeMouseEvent) => {
     elementToDelete.value = { type: 'node', id: event.node.id }
     
     // 显示确认对话框
-    if (confirm(`确定要删除节点 "${(event.node.data as any)?.title || event.node.id}" 吗？`)) {
+    if (confirm(`确定要删除节点 "${(event.node.data as Record<string, unknown>)?.title || event.node.id}" 吗？`)) {
       // 调用工作流存储中的删除方法（后续实现）
       console.log('删除节点:', event.node.id)
       workflow.deleteNode(event.node.id)
@@ -110,7 +108,12 @@ const onNodeDblClick = (event: NodeMouseEvent) => {
   }
 }
 
-const onEdgeClick = (event: any) => {
+// 边点击事件类型
+interface EdgeClickEvent {
+  edge: { id: string; source: string; target: string }
+}
+
+const onEdgeClick = (event: EdgeClickEvent) => {
   if (ui.isEditMode) {
     console.log('编辑模式下点击连线:', event.edge.id)
     // 在编辑模式下高亮显示点击的连线
@@ -121,7 +124,7 @@ const onEdgeClick = (event: any) => {
   }
 }
 
-const onEdgeDblClick = (event: any) => {
+const onEdgeDblClick = (event: EdgeClickEvent) => {
   if (ui.isEditMode && hasCurrentWorkflow.value && workflow.currentWorkflow) {
     console.log('编辑模式下双击删除连线:', event.edge.id)
     
@@ -142,7 +145,7 @@ const onEdgeDblClick = (event: any) => {
 }
 
 const onConnect = (connection: Connection) => {
-  const newEdge = workflow.addEdge({
+  workflow.addEdge({
     source: connection.source,
     target: connection.target,
     sourceHandle: connection.sourceHandle || undefined,
@@ -178,20 +181,14 @@ const onDrop = (event: DragEvent) => {
   }
 
   try {
-    // 获取正确的画布容器位置
-    const canvasContainer = event.currentTarget as HTMLElement
-    if (!canvasContainer) {
-      console.error('❌ 未找到画布容器')
-      return
-    }
+    // 使用 VueFlow 的 project 方法将屏幕坐标转换为画布坐标
+    // 这样可以正确处理缩放和平移
+    const position = project({
+      x: event.clientX,
+      y: event.clientY,
+    })
 
-    const rect = canvasContainer.getBoundingClientRect()
-    const position = {
-      x: event.clientX - rect.left,
-      y: event.clientY - rect.top,
-    }
-
-    console.log('📍 计算的位置:', position)
+    console.log('📍 转换后的画布坐标:', position)
 
     // 解析完整的节点数据
     if (jsonData) {

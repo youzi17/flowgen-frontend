@@ -37,24 +37,17 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
-import { useVueFlow, Handle, Position } from '@vue-flow/core';
-import type { WorkflowNode } from '@/types/workflow';
+import { Handle, Position } from '@vue-flow/core';
 
 interface Props {
   id: string;
-  data: Record<string, any>;
+  data: Record<string, unknown> & { model?: string; prompt?: string };
   selected?: boolean;
   targetPosition?: string;
   sourcePosition?: string;
 }
 
-const props = defineProps<Props>();
-
-const { getNodes } = useVueFlow();
-const node = computed(() => {
-  return getNodes.value.find(n => n.id === props.id) as WorkflowNode;
-});
+defineProps<Props>();
 </script>
 
 <style scoped>

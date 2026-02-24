@@ -76,7 +76,7 @@ const onFormChange = () => {
     if (formState.value.inputData) {
       JSON.parse(String(formState.value.inputData || '{}'));
     }
-  } catch (error) {
+  } catch (_error) {
     console.warn('初始数据格式不正确，需要是有效的JSON');
   }
   

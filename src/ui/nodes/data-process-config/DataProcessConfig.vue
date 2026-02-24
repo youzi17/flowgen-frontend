@@ -40,7 +40,7 @@
               <el-button type="danger" icon="Delete" circle @click="removeReplaceRule(index)" />
             </div>
           </div>
-          <el-button type="primary" icon="Plus" @click="addReplaceRule">添加替换规则<el/button>
+          <el-button type="primary" icon="Plus" @click="addReplaceRule">添加替换规则</el-button>
         </el-form-item>
       </div>
 

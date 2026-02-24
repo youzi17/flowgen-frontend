@@ -44,9 +44,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed } from 'vue';
 import { useWorkflowStore } from '@/stores/workflow-store';
-import { Link, Plus } from '@element-plus/icons-vue';
+import { Plus } from '@element-plus/icons-vue';
 import type { NodeType } from '@/types/workflow';
 
 // 定义组件的参数
@@ -93,7 +93,7 @@ const availableNodes = computed(() => {
     })
     .map(node => {
       // 构建节点树结构
-      const nodeItem: any = {
+      const nodeItem: { id: string; label: string; value: string; children: { id: string; label: string; value: string; isLeaf: boolean }[] } = {
         id: node.id,
         label: `${getDisplayName(node.type)} (${node.id})`,
         value: `{{${node.id}}}`,
@@ -157,7 +157,7 @@ function getDisplayName(nodeType: string): string {
 }
 
 // 处理节点点击事件
-function handleNodeClick(node: any) {
+function handleNodeClick(node: { isLeaf?: boolean; value?: string }) {
   if (node.isLeaf && node.value) {
     selectVariable(node.value);
   }
@@ -167,11 +167,6 @@ function handleNodeClick(node: any) {
 function selectVariable(variableRef: string) {
   emit('select', variableRef);
   displayVisible.value = false;
-}
-
-// 处理关闭事件
-function handleClose() {
-  emit('close');
 }
 
 // 处理关闭事件

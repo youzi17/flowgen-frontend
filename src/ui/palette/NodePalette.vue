@@ -61,7 +61,7 @@ interface NodeDefinition {
   description: string
   icon: string
   category: string
-  defaultData?: Record<string, any>
+  defaultData?: Record<string, unknown>
 }
 
 // 节点注册数据
@@ -295,19 +295,6 @@ const createDragImage = (nodeDef: NodeDefinition): HTMLElement => {
   }, 100)
 
   return dragImage
-}
-
-const getCategoryName = (category: string) => {
-  const names: Record<string, string> = {
-    AI: 'AI节点',
-    逻辑: '逻辑节点',
-    '数据处理': '数据处理节点',
-    输出: '输出节点',
-    基础: '基础节点',
-  }
-  // 调试日志
-  console.log('原始分类名:', category, '映射后的分类名:', names[category] || category)
-  return names[category] || category
 }
 </script>
 

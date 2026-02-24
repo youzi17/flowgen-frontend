@@ -191,5 +191,6 @@ export const useUIStore = defineStore('ui', () => {
     showInfo,
     clearNotifications,
     clear,
+    toggleEditMode,
   }
 })

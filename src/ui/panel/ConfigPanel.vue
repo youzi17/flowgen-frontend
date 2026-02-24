@@ -20,7 +20,7 @@ import { computed, defineAsyncComponent } from 'vue';
 import { useUIStore } from '@/stores/ui-store';
 import { useWorkflowStore } from '@/stores/workflow-store';
 import { useHistoryStore } from '@/stores/history-store';
-import type { NodeType, WorkflowNode } from '@/types/workflow';
+import type { NodeType } from '@/types/workflow';
 import type { BaseNodeData } from '@/types/workflow';
 
 // 业务逻辑

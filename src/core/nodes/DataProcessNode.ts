@@ -1,7 +1,7 @@
 import type { WorkflowNode } from '@/types/workflow'
 
 // 内联实现createDefaultNode函数，因为utils/node-utils模块不存在
-function createDefaultNode(id: string, type: 'data-process', x: number, y: number, data: any = {}): DataProcessNode {
+function createDefaultNode(id: string, type: 'data-process', x: number, y: number, data: DataProcessNodeData = {} as DataProcessNodeData): DataProcessNode {
   return {
     id,
     type,
@@ -159,38 +159,38 @@ export function applyReplaceRules(text: string, rules: ReplaceRule[]): string {
 }
 
 // 从对象中获取字段值（支持点表示法）
-export function getFieldValue(obj: any, fieldPath: string): any {
+export function getFieldValue(obj: Record<string, unknown>, fieldPath: string): unknown {
   if (!fieldPath) return obj
 
   const fields = fieldPath.split('.')
-  let result = obj
+  let result: unknown = obj
 
   for (const field of fields) {
     if (result === null || result === undefined) {
       return undefined
     }
-    result = result[field]
+    result = (result as Record<string, unknown>)[field]
   }
 
   return result
 }
 
 // 设置对象字段值（支持点表示法）
-export function setFieldValue(obj: any, fieldPath: string, value: any): void {
+export function setFieldValue(obj: Record<string, unknown>, fieldPath: string, value: unknown): void {
   if (!fieldPath) {
     Object.assign(obj, value)
     return
   }
 
   const fields = fieldPath.split('.')
-  let current = obj
+  let current: Record<string, unknown> = obj
 
   for (let i = 0; i < fields.length - 1; i++) {
     const field = fields[i] as string
     if (!current[field]) {
       current[field] = {}
     }
-    current = current[field]
+    current = current[field] as Record<string, unknown>
   }
 
   current[fields[fields.length - 1] as string] = value

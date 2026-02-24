@@ -55,12 +55,14 @@ export const useWorkflowStore = defineStore('workflow', () => {
       if (workflows.value.length > 0 && workflows.value[0]) {
         currentWorkflow.value = workflows.value[0]
       } else {
-        // 不自动创建工作流，保持为空
-        currentWorkflow.value = null
+        // 自动创建一个新的空工作流，让用户可以立即开始拖拽节点
+        currentWorkflow.value = createEmptyWorkflow()
+        console.log('自动创建新工作流:', currentWorkflow.value.id)
       }
     } catch (error) {
       console.error('初始化工作流失败:', error)
-      currentWorkflow.value = null
+      // 即使初始化失败，也创建一个空工作流
+      currentWorkflow.value = createEmptyWorkflow()
     }
   }
 

@@ -1,4 +1,4 @@
-import type { DataProcessNode, DataProcessType, TransformOptions } from './DataProcessNode'
+import type { DataProcessNode, TransformOptions } from './DataProcessNode'
 import {
   getFieldValue,
   setFieldValue,
@@ -8,9 +8,9 @@ import {
 
 // 节点执行上下文类型
 export interface NodeExecutionContext {
-  data: Record<string, any>
+  data: Record<string, unknown>
   addError: (message: string, details?: string) => void
-  [key: string]: any
+  [key: string]: unknown
 }
 
 /**
@@ -26,7 +26,7 @@ export class DataProcessNodeProcessor {
       const { processType, inputField, outputField, transformOptions } = node.data
 
       // 获取输入数据
-      const inputData = getFieldValue(context.data, inputField || '')
+      const inputData = getFieldValue(context.data as Record<string, unknown>, inputField || '')
 
       if (inputData === undefined || inputData === null) {
         console.warn(`DataProcessNode: Input field "${inputField}" not found in context data`)
@@ -35,7 +35,7 @@ export class DataProcessNodeProcessor {
       }
 
       // 根据处理类型执行不同的转换
-      let outputData: any
+      let outputData: unknown
       // 确保transformOptions不是undefined
       const options = transformOptions || {}
       switch (processType) {
@@ -57,7 +57,7 @@ export class DataProcessNodeProcessor {
       }
 
       // 设置输出数据
-      setFieldValue(context.data, outputField || 'processedData', outputData)
+      setFieldValue(context.data as Record<string, unknown>, outputField || 'processedData', outputData)
 
       return true
     } catch (error) {
@@ -70,7 +70,7 @@ export class DataProcessNodeProcessor {
   /**
    * 处理文本转换
    */
-  private processTextTransform(input: any, options: TransformOptions): string {
+  private processTextTransform(input: unknown, options: TransformOptions): string {
     // 确保输入是字符串
     let text = String(input)
 
@@ -90,7 +90,7 @@ export class DataProcessNodeProcessor {
   /**
    * 处理数据提取
    */
-  private processDataExtraction(input: any, options: TransformOptions): any {
+  private processDataExtraction(input: unknown, options: TransformOptions): unknown {
     const { extractionType, expression } = options
 
     if (!expression) {
@@ -117,7 +117,7 @@ export class DataProcessNodeProcessor {
   /**
    * 使用正则表达式提取数据
    */
-  private extractWithRegex(text: string, regexStr: string): any {
+  private extractWithRegex(text: string, regexStr: string): string | string[] | null {
     try {
       const regex = new RegExp(regexStr, 'g')
       const matches = text.match(regex)
@@ -125,7 +125,7 @@ export class DataProcessNodeProcessor {
       // 如果有捕获组，返回第一个捕获组的结果，否则返回所有匹配项
       if (regexStr.includes('(') && regexStr.includes(')')) {
         const firstMatch = regex.exec(text)
-        return firstMatch && firstMatch.length > 1 ? firstMatch[1] : matches
+        return firstMatch && firstMatch.length > 1 ? firstMatch[1] as string : matches
       }
 
       return matches
@@ -138,7 +138,7 @@ export class DataProcessNodeProcessor {
   /**
    * 使用JSONPath提取数据
    */
-  private extractWithJsonPath(obj: any, jsonPath: string): any {
+  private extractWithJsonPath(obj: unknown, jsonPath: string): unknown {
     // 简单的JSONPath实现
     // 支持：$.property, $.array[0], $.nested.property
 
@@ -173,9 +173,9 @@ export class DataProcessNodeProcessor {
   /**
    * 获取嵌套属性
    */
-  private getNestedProperty(obj: any, propertyPath: string): any {
+  private getNestedProperty(obj: unknown, propertyPath: string): unknown {
     const properties = propertyPath.split('.')
-    let result = obj
+    let result: unknown = obj
 
     for (const prop of properties) {
       // 检查是否是数组索引
@@ -188,7 +188,7 @@ export class DataProcessNodeProcessor {
         }
       } else {
         if (result && typeof result === 'object' && prop in result) {
-          result = result[prop]
+          result = (result as Record<string, unknown>)[prop]
         } else {
           return undefined
         }
@@ -201,7 +201,7 @@ export class DataProcessNodeProcessor {
   /**
    * 使用XPath提取数据（简化实现）
    */
-  private extractWithXPath(xmlStr: string, xpath: string): any {
+  private extractWithXPath(_xmlStr: string, _xpath: string): unknown {
     // 注意：在浏览器环境中，我们可以使用DOMParser来处理XML
     // 这里提供一个简化的实现，实际使用时可能需要引入专门的XPath库
     console.warn('XPath extraction is not fully implemented in this simplified version')
@@ -211,7 +211,7 @@ export class DataProcessNodeProcessor {
   /**
    * 处理格式转换
    */
-  private processFormatConversion(input: any, options: TransformOptions): any {
+  private processFormatConversion(input: unknown, options: TransformOptions): unknown {
     const { targetFormat, delimiter = ',' } = options
 
     try {
@@ -220,7 +220,7 @@ export class DataProcessNodeProcessor {
           return JSON.stringify(input)
         case 'stringToJson':
           if (typeof input === 'string') {
-            return JSON.parse(input)
+            return JSON.parse(input) as unknown
           }
           return input
         case 'stringToArray':
@@ -245,14 +245,14 @@ export class DataProcessNodeProcessor {
   /**
    * 处理数据过滤
    */
-  private processDataFiltering(input: any, options: TransformOptions): any {
+  private processDataFiltering(input: unknown, options: TransformOptions): unknown {
     const filterType = options.filterType || 'contains'
     const filterValue = options.filterValue || ''
     const filterField = options.filterField || ''
 
     // 如果是数组，过滤数组中的每个元素
     if (Array.isArray(input)) {
-      return input.filter((item) => this.applyFilter(item, filterType, filterValue, filterField))
+      return input.filter((item: unknown) => this.applyFilter(item, filterType, filterValue, filterField))
     }
 
     // 如果是对象，检查是否匹配过滤条件
@@ -268,33 +268,33 @@ export class DataProcessNodeProcessor {
    * 应用过滤条件
    */
   private applyFilter(
-    value: any,
+    value: unknown,
     filterType: string,
     filterValue: string,
     filterField: string,
   ): boolean {
-    let compareValue: any = value
+    let compareValue: unknown = value
 
     // 如果指定了字段，从对象中获取字段值
     if (filterField && typeof value === 'object' && value !== null) {
-      compareValue = getFieldValue(value, filterField)
+      compareValue = getFieldValue(value as Record<string, unknown>, filterField)
     }
 
-    compareValue = String(compareValue)
+    const compareStr = String(compareValue)
 
     switch (filterType) {
       case 'contains':
-        return compareValue.includes(filterValue)
+        return compareStr.includes(filterValue)
       case 'notContains':
-        return !compareValue.includes(filterValue)
+        return !compareStr.includes(filterValue)
       case 'equals':
-        return compareValue === filterValue
+        return compareStr === filterValue
       case 'notEquals':
-        return compareValue !== filterValue
+        return compareStr !== filterValue
       case 'greaterThan':
-        return parseFloat(compareValue) > parseFloat(filterValue)
+        return parseFloat(compareStr) > parseFloat(filterValue)
       case 'lessThan':
-        return parseFloat(compareValue) < parseFloat(filterValue)
+        return parseFloat(compareStr) < parseFloat(filterValue)
       default:
         return true
     }

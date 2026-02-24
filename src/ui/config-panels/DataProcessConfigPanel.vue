@@ -195,7 +195,6 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import type { DataProcessNode, DataProcessNodeData, TransformOptions } from '@/core/nodes/DataProcessNode'
-import { createDataProcessNode } from '@/core/nodes/DataProcessNode'
 
 interface Props {
   node: DataProcessNode

@@ -6,7 +6,7 @@ import { registerDataProcessNode } from './registerDataProcessNode'
 /**
  * 注册所有节点类型
  */
-export function registerAllNodes(nodeRegistry: any): void {
+export function registerAllNodes(nodeRegistry: { registerNodeType: (definition: unknown) => void }): void {
   // 注册数据处理节点
   registerDataProcessNode(nodeRegistry)
   

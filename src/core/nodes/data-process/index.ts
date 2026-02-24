@@ -22,7 +22,7 @@ export { default as DataProcessConfigPanel } from '@/ui/config-panels/DataProces
 export const dataProcessModule = {
   name: 'data-process',
   description: '数据处理模块',
-  register: (nodeRegistry: any) => {
+  register: (nodeRegistry: { registerNodeType: (definition: unknown) => void }) => {
     import('../registerDataProcessNode').then(({ registerDataProcessNode }) => {
       registerDataProcessNode(nodeRegistry)
     })

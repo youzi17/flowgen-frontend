@@ -128,8 +128,9 @@
 
     <el-form-item label="输入字段" prop="inputField" help="指定要处理的输入字段路径">
       <div class="input-container">
-        <VariableInput 
-          v-model="formState.inputField" 
+        <VariableInput
+          :model-value="formState.inputField || ''"
+          @update:model-value="(v: string) => { formState.inputField = v }"
           placeholder="请输入字段名或引用其他节点的数据"
           :current-node-id="props.node.id"
           :exclude-node-types="['end']"
@@ -211,7 +212,7 @@ const props = defineProps<Props>()
 const emit = defineEmits<{
   'update:config': [value: DataProcessNodeData]
 }>()
-const formRef = ref<InstanceType<any>>()
+const formRef = ref<InstanceType<typeof import('element-plus')['ElForm']> | null>(null)
 
 // 计算属性：格式化后的节点数据
 const nodeData = computed(() => {
@@ -226,8 +227,13 @@ const nodeData = computed(() => {
   }
 })
 
+// 表单状态类型，确保transformOptions始终存在
+interface FormState extends Omit<DataProcessNodeData, 'transformOptions'> {
+  transformOptions: TransformOptions
+}
+
 // 表单状态 - 初始化完整的transformOptions结构
-const formState = ref<any>({
+const formState = ref<FormState>({
   processType: nodeData.value.processType || 'text_transform',
   inputField: nodeData.value.inputField || '',
   outputField: nodeData.value.outputField || 'processedData',

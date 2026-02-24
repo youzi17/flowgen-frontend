@@ -114,10 +114,6 @@ import {
   Download,
   Delete
 } from '@element-plus/icons-vue';
-import ConditionNode from '@/ui/nodes/condition-node.vue'
-import DataProcessNode from '@/ui/nodes/data-process-node.vue'
-import ConditionConfig from '@/ui/panel/configs/condition-config.vue'
-import DataProcessConfig from '@/ui/panel/configs/data-process-config.vue'
 
 const router = useRouter();
 const workflowStore = useWorkflowStore();
@@ -165,7 +161,7 @@ const openWorkflow = (workflowId: string) => {
 const duplicateWorkflow = async (workflowId: string) => {
   const workflow = workflows.value.find(w => w.id === workflowId);
   if (workflow) {
-    const newWorkflow: WorkflowState = {
+    const _newWorkflow: WorkflowState = {
       ...workflow,
       id: uuidv4(),
       name: `${workflow.name} (副本)`,

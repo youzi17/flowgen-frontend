@@ -56,9 +56,8 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useVueFlow, Handle, Position } from '@vue-flow/core'
-import type { WorkflowNode } from '@/types/workflow'
-import type { DataProcessNodeData, DataProcessType } from '@/core/nodes/DataProcessNode'
+import { Handle, Position } from '@vue-flow/core'
+import type { DataProcessNodeData } from '@/core/nodes/DataProcessNode'
 
 // 定义转换选项类型
 interface TransformOptions {

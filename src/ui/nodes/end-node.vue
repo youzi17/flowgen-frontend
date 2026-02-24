@@ -33,9 +33,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
-import { useVueFlow, Handle, Position } from '@vue-flow/core';
-import type { WorkflowNode } from '@/types/workflow';
+import { Handle, Position } from '@vue-flow/core';
 
 interface EndNodeData {
   outputFormat?: string;
@@ -51,12 +49,7 @@ interface Props {
   sourcePosition?: string;
 }
 
-const props = defineProps<Props>();
-
-const { getNodes } = useVueFlow();
-const node = computed(() => {
-  return getNodes.value.find(n => n.id === props.id) as WorkflowNode;
-});
+defineProps<Props>();
 
 const getFormatLabel = (format: string): string => {
   const formatMap: Record<string, string> = {

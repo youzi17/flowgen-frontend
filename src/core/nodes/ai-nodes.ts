@@ -37,7 +37,7 @@ export function registerAINodes(): void {
         prompt = '',
         model = 'gpt-3.5-turbo',
         temperature = 0.7,
-        maxTokens = 1000
+        maxTokens: _maxTokens = 1000
       } = nodeData as AINodeConfig;
       
       // 解析动态参数

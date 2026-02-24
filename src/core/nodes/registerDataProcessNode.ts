@@ -2,6 +2,11 @@ import { createDataProcessNode } from './DataProcessNode'
 import { DataProcessNodeProcessor } from './DataProcessNodeProcessor'
 import type { DataProcessNode } from './DataProcessNode'
 
+// 节点注册中心接口
+interface NodeRegistry {
+  registerNodeType: (definition: NodeTypeDefinition) => void
+}
+
 // 节点类型定义接口
 export interface NodeTypeDefinition {
   type: string
@@ -11,7 +16,7 @@ export interface NodeTypeDefinition {
   icon: string
   color: string
   createNode: (id: string, x: number, y: number) => DataProcessNode
-  processor: any
+  processor: DataProcessNodeProcessor
   ports: Array<{
     id: string
     type: string
@@ -20,11 +25,11 @@ export interface NodeTypeDefinition {
     allowTypes?: string[]
     dataType?: string
   }>
-  configPanel: () => Promise<any>
+  configPanel: () => Promise<unknown>
 }
 
 // 节点注册函数类型
-export type NodeRegisterFunction = (nodeRegistry: any) => void
+export type NodeRegisterFunction = (nodeRegistry: NodeRegistry) => void
 
 /**
  * 数据处理节点的定义
@@ -60,7 +65,7 @@ export const dataProcessNodeDefinition: NodeTypeDefinition = {
 /**
  * 注册数据处理节点的函数
  */
-export const registerDataProcessNode: NodeRegisterFunction = (nodeRegistry: any) => {
+export const registerDataProcessNode: NodeRegisterFunction = (nodeRegistry: NodeRegistry) => {
   // 注册数据处理节点
   nodeRegistry.registerNodeType(dataProcessNodeDefinition)
 

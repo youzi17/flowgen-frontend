@@ -65,7 +65,7 @@ import { ElMessage } from 'element-plus'
 // 业务逻辑
 const workflow = useWorkflowStore()
 const history = useHistoryStore()
-const ui = useUIStore()
+const _ui = useUIStore()
 const router = useRouter()
 
 // 本地设置面板可见性状态

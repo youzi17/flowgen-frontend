@@ -31,7 +31,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, watch, computed } from 'vue'
+import { onMounted, watch, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useWorkflowStore } from '@/stores/workflow-store'
 import { useUIStore } from '@/stores/ui-store'
@@ -39,10 +39,6 @@ import WorkflowCanvas from '@/ui/canvas/WorkflowCanvas.vue'
 import NodePalette from '@/ui/palette/NodePalette.vue'
 import MainToolbar from '@/ui/toolbar/MainToolbar.vue'
 import ExecutionPanel from '@/ui/panel/ExecutionPanel.vue'
-import ConditionNode from '@/ui/nodes/condition-node.vue'
-import DataProcessNode from '@/ui/nodes/data-process-node.vue'
-import ConditionConfig from '@/ui/panel/configs/condition-config.vue'
-import DataProcessConfig from '@/ui/panel/configs/data-process-config.vue'
 
 const route = useRoute()
 const router = useRouter()

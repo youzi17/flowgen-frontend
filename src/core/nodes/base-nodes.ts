@@ -1,6 +1,6 @@
 import { NodeRegistry } from '../node-registry/registry';
 import type { WorkflowNode } from '@/types/workflow';
-import type { ExecutionContext } from '../workflow-engine/types';
+import type { ExecutionContext, NodeExecutionResult } from '../workflow-engine/types';
 
 /**
  * 注册基础节点类型
@@ -17,7 +17,7 @@ export function registerBaseNodes(): void {
     inputs: 0,
     outputs: 1,
     defaultData: {},
-    executor: async (node: WorkflowNode, context: ExecutionContext) => {
+    executor: async (node: WorkflowNode, _context: ExecutionContext) => {
       const startTime = Date.now();
       
       try {
@@ -56,8 +56,8 @@ export function registerBaseNodes(): void {
     executor: async (node: WorkflowNode, context: ExecutionContext) => {
       // 获取所有前置节点的输出
       const allResults = Object.values(context)
-        .filter(result => result.success)
-        .map(result => result.output);
+        .filter((result: NodeExecutionResult) => result.success)
+        .map((result: NodeExecutionResult) => result.output);
 
       const startTime = Date.now();
       
@@ -97,7 +97,7 @@ export function registerBaseNodes(): void {
       text: '输出内容',
       format: 'plain'
     },
-    executor: async (node: WorkflowNode, context: ExecutionContext) => {
+    executor: async (node: WorkflowNode, _context: ExecutionContext) => {
       const { text = '' } = node.data || {};
       
       const startTime = Date.now();

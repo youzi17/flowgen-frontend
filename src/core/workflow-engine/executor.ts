@@ -40,7 +40,7 @@ export class WorkflowExecutor {
    * @param node 要执行的节点
    * @param edges 工作流中的所有边
    */
-  private async executeNode(node: WorkflowNode, edges: Edge[]): Promise<void> {
+  private async executeNode(node: WorkflowNode, _edges: Edge[]): Promise<void> {
     const startTime = Date.now();
     let result: NodeExecutionResult;
     
