@@ -5,8 +5,20 @@
   >
     <el-form-item label="AI模型">
       <el-select v-model="formState.model" placeholder="选择AI模型">
-        <el-option label="GPT-3.5 Turbo" value="gpt-3.5-turbo" />
-        <el-option label="GPT-4" value="gpt-4" />
+        <el-option-group label="通义千问">
+          <el-option label="Qwen Turbo" value="qwen-turbo" />
+          <el-option label="Qwen Plus" value="qwen-plus" />
+          <el-option label="Qwen Max" value="qwen-max" />
+        </el-option-group>
+        <el-option-group label="OpenAI">
+          <el-option label="GPT-3.5 Turbo" value="gpt-3.5-turbo" />
+          <el-option label="GPT-4" value="gpt-4" />
+          <el-option label="GPT-4o" value="gpt-4o" />
+        </el-option-group>
+        <el-option-group label="Anthropic">
+          <el-option label="Claude 3.5 Sonnet" value="claude-3-5-sonnet-latest" />
+          <el-option label="Claude 3.5 Haiku" value="claude-3-5-haiku-latest" />
+        </el-option-group>
       </el-select>
     </el-form-item>
     
@@ -70,7 +82,7 @@ const emit = defineEmits<{
 
 // 表单状态
 const formState = ref({
-  model: props.node.data.model || 'gpt-3.5-turbo',
+  model: props.node.data.model || 'qwen-turbo',
   prompt: props.node.data.prompt || '',
   temperature: props.node.data.temperature || 0.7,
   maxTokens: props.node.data.maxTokens || 1000

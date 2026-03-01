@@ -1,55 +1,65 @@
 <template>
   <el-config-provider :locale="zhCn">
     <div class="app-layout">
-      <el-container>
-        <!-- 顶部导航栏 -->
-        <el-header class="app-header">
-          <div class="toolbar-brand">
-            <el-icon size="24"><Document /></el-icon>
-            <span class="logo-text">工作流编辑器</span>
-          </div>
-          <Toolbar />
-        </el-header>
-
-        <!-- 主内容区域 -->
-        <el-container
-          class="main-container"
-          :class="{ 'panel-expanded': ui.executionPanelVisible }"
-        >
-          <!-- 左侧节点面板 -->
-          <el-aside width="320px" class="sidebar">
-            <NodePalette />
-          </el-aside>
-
-          <!-- 中间画布区域 -->
-          <el-main class="canvas">
-            <WorkflowCanvas />
-          </el-main>
-
-          <!-- 右侧配置面板 -->
-          <el-aside
-            v-if="ui.configPanelVisible && ui.selectedNode"
-            width="320px"
-            class="config-panel"
-          >
-            <ConfigPanel />
-          </el-aside>
-        </el-container>
-
-        <!-- 底部执行面板 -->
-        <div class="bottom-panel">
-          <ExecutionPanel />
+      <!-- 顶部导航栏 -->
+      <header class="app-header">
+        <!-- 左侧：Logo + 工作流名称 -->
+        <div class="header-left">
+          <router-link to="/workflows" class="header-logo">
+            <svg width="22" height="22" viewBox="0 0 28 28" fill="none">
+              <rect width="28" height="28" rx="8" fill="#6366f1" />
+              <path d="M7 14h4l3-6 3 12 3-6h4" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+            <span class="logo-text">FlowGen</span>
+          </router-link>
+          <div class="header-divider" />
+          <span class="workflow-name">{{ workflowName }}</span>
         </div>
-      </el-container>
+
+        <!-- 中间：工具栏 -->
+        <div class="header-center">
+          <Toolbar />
+        </div>
+
+        <!-- 右侧：用户信息 -->
+        <div class="header-right">
+          <span class="user-badge">{{ auth.user?.displayName || auth.user?.email || '未登录' }}</span>
+        </div>
+      </header>
+
+      <!-- 主内容区域 -->
+      <div class="main-container">
+        <!-- 左侧节点面板 -->
+        <aside class="sidebar">
+          <NodePalette />
+        </aside>
+
+        <!-- 中间画布区域 -->
+        <main class="canvas">
+          <WorkflowCanvas />
+        </main>
+
+        <!-- 右侧配置面板 -->
+        <aside v-if="ui.configPanelVisible && ui.selectedNode" class="config-panel">
+          <ConfigPanel />
+        </aside>
+      </div>
+
+      <!-- 底部执行面板 -->
+      <div class="bottom-panel">
+        <ExecutionPanel />
+      </div>
     </div>
   </el-config-provider>
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import { ElConfigProvider } from 'element-plus'
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import { useUIStore } from '@/stores/ui-store'
-import { Document } from '@element-plus/icons-vue'
+import { useWorkflowStore } from '@/stores/workflow-store'
+import { useAuthStore } from '@/stores/auth-store'
 import Toolbar from '@/ui/toolbar/MainToolbar.vue'
 import NodePalette from '@/ui/palette/NodePalette.vue'
 import WorkflowCanvas from '@/ui/canvas/WorkflowCanvas.vue'
@@ -57,8 +67,12 @@ import ConfigPanel from '@/ui/panel/ConfigPanel.vue'
 import ExecutionPanel from '@/ui/panel/ExecutionPanel.vue'
 
 const ui = useUIStore()
+const workflow = useWorkflowStore()
+const auth = useAuthStore()
 
-// 确保执行面板默认是展开的
+const workflowName = computed(() => workflow.currentWorkflow?.name || '未命名工作流')
+
+// 确保执行面板默认展开
 ui.executionPanelVisible = true
 </script>
 
@@ -68,34 +82,83 @@ ui.executionPanelVisible = true
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  position: relative;
-  min-width: 1024px; /* 桌面端最小宽度 */
+  background: #f8f9ff;
+  min-width: 1024px;
 }
 
-/* 顶部导航栏 */
+/* 顶部导航栏 - glassmorphism */
 .app-header {
-  background: #f0e8ff; /* bg-[#f0e8ff] - 柔和紫色 */
-  color: var(--el-text-color-main-title);
-  border-bottom: 1px solid #d9c8f0; /* border-b border-[#d9c8f0] */
-  padding: 0 24px; /* px-6 = 24px */
+  height: 56px;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(229, 231, 235, 0.8);
+  padding: 0 20px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   flex-shrink: 0;
-  height: 60px; /* h-[60px] */
-  transition: all 0.2s ease;
+  z-index: 10;
 }
 
-.toolbar-brand {
+.header-left {
   display: flex;
   align-items: center;
-  gap: 8px; /* space-x-2 = 8px */
+  gap: 12px;
+  min-width: 200px;
 }
 
+.header-logo {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  text-decoration: none;
+}
 .logo-text {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
+  font-size: 15px;
+  font-weight: 700;
+  color: #1e1b4b;
+  letter-spacing: -0.3px;
+}
+
+.header-divider {
+  width: 1px;
+  height: 18px;
+  background: #e5e7eb;
+}
+
+.workflow-name {
+  font-size: 13px;
+  color: #6b7280;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.header-center {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  min-width: 200px;
+  justify-content: flex-end;
+}
+
+.user-badge {
+  font-size: 13px;
+  color: #6b7280;
+  background: #f3f4f6;
+  padding: 4px 10px;
+  border-radius: 20px;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* 主内容区域 */
@@ -107,56 +170,46 @@ ui.executionPanelVisible = true
 
 /* 左侧侧边栏 */
 .sidebar {
-  background: #ffffff; /* bg-white */
-  border-right: 1px solid #e5e7eb; /* border-r border-gray-200 */
+  width: 280px;
+  background: #ffffff;
+  border-right: 1px solid #f0f0f5;
   height: 100%;
   display: flex;
   flex-direction: column;
   overflow-y: auto;
-  width: 320px; /* w-80 = 320px */
   flex-shrink: 0;
 }
 
 /* 画布区域 */
 .canvas {
-  background: #f8f6fa; /* bg-[#f8f6fa] - 极浅粉紫色 */
+  flex: 1;
+  background: #f4f4f8;
   padding: 0;
-  flex: 1; /* 占满剩余空间 */
   overflow: hidden;
   position: relative;
 }
 
 /* 配置面板（右侧） */
 .config-panel {
-  background: #ffffff; /* bg-white */
-  border-left: 1px solid #e5e7eb; /* border-gray-200 */
+  width: 300px;
+  background: #ffffff;
+  border-left: 1px solid #f0f0f5;
   height: 100%;
   display: flex;
   flex-direction: column;
-  width: 320px; /* w-80 = 320px */
   flex-shrink: 0;
 }
 
 /* 底部面板 */
 .bottom-panel {
   flex-shrink: 0;
-  border-top: 1px solid #e5e7eb; /* border-t border-gray-200 */
-  background-color: #ffffff;
+  border-top: 1px solid #f0f0f5;
+  background: #ffffff;
 }
 
-/* 响应式设计 */
 @media (max-width: 1024px) {
-  .app-layout {
-    min-width: unset;
-  }
-
-  .sidebar,
-  .config-panel {
-    width: 280px;
-  }
-
-  .logo-text {
-    display: none;
-  }
+  .app-layout { min-width: unset; }
+  .sidebar, .config-panel { width: 260px; }
+  .workflow-name, .user-badge { display: none; }
 }
 </style>

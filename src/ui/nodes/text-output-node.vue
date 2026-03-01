@@ -1,173 +1,93 @@
 <template>
-  <div class="text-output-node" :class="{ 'is-selected': selected }">
-    <div class="node-header">
-      <el-icon :size="20" >
-        <svg viewBox="0 0 1024 1024" width="1em" height="1em" fill="currentColor">
-          <path d="M512 0C229.248 0 0 229.248 0 512s229.248 512 512 512 512-229.248 512-512S794.752 0 512 0zm0 928C286.656 928 96 737.344 96 512S286.656 96 512 96s416 190.656 416 416-190.656 416-416 416z" />
-          <path d="M384 384h256v48H384zm0 128h256v48H384zm0 128h192v48H384z" />
+  <div class="flow-node text-output-node" :class="{ 'is-selected': selected }">
+    <div class="node-header" style="background:#e0f2fe;">
+      <div class="node-icon" style="color:#0284c7;">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <rect x="1" y="2" width="12" height="2" rx="1" fill="currentColor"/>
+          <rect x="1" y="6" width="9" height="2" rx="1" fill="currentColor"/>
+          <rect x="1" y="10" width="6" height="2" rx="1" fill="currentColor"/>
         </svg>
-      </el-icon>
-      <span class="node-title">文本输出</span>
+      </div>
+      <span class="node-title" style="color:#0c4a6e;">文本输出</span>
+      <span v-if="data?.outputType" class="node-tag" style="background:#bae6fd;color:#0369a1;">{{ typeLabel(String(data.outputType)) }}</span>
     </div>
-    <div class="node-content">
-      <div v-if="data?.outputType" class="node-data">
-        <span class="data-label">输出类型:</span>
-        <span class="data-value">{{ getOutputTypeLabel(data.outputType) }}</span>
+    <div v-if="data?.template || data?.dataSource" class="node-body">
+      <div v-if="data?.dataSource" class="node-row">
+        <span class="row-label">数据源</span>
+        <span class="row-val">{{ truncate(String(data.dataSource), 16) }}</span>
       </div>
-      <div v-if="data?.dataSource" class="node-data">
-        <span class="data-label">数据源:</span>
-        <span class="data-value">{{ data.dataSource }}</span>
-      </div>
-      <div v-if="data?.template" class="node-data template">
-        <span class="data-label">模板:</span>
-        <span class="data-value template-value">{{ data.template.length > 25 ? data.template.substring(0, 25) + '...' : data.template }}</span>
+      <div v-if="data?.template" class="node-row">
+        <span class="row-label">模板</span>
+        <span class="row-val">{{ truncate(String(data.template), 16) }}</span>
       </div>
     </div>
-    <div class="node-footer">
-      <Handle
-        type="target"
-        :position="Position.Left"
-        :id="'in'"
-        class="custom-handle"
-      />
-      <Handle
-        type="source"
-        :position="Position.Right"
-        :id="'out'"
-        class="custom-handle"
-      />
-    </div>
+    <div v-else class="node-empty">配置输出模板</div>
+    <Handle type="target" :position="Position.Left" id="in" />
+    <Handle type="source" :position="Position.Right" id="out" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { Handle, Position } from '@vue-flow/core';
-
-interface TextOutputNodeData {
-  outputType?: string;
-  dataSource?: string;
-  template?: string;
-  [key: string]: unknown;
-}
-
+import { Handle, Position } from '@vue-flow/core'
 interface Props {
-  id: string;
-  data: TextOutputNodeData;
-  selected?: boolean;
-  targetPosition?: string;
-  sourcePosition?: string;
+  id: string
+  data: { outputType?: string; dataSource?: string; template?: string; [k: string]: unknown }
+  selected?: boolean
 }
-
-defineProps<Props>();
-
-const getOutputTypeLabel = (type: string): string => {
-  const typeMap: Record<string, string> = {
-    'plain_text': '纯文本',
-    'markdown': 'Markdown',
-    'html': 'HTML'
-  };
-  return typeMap[type] || type;
-};
+defineProps<Props>()
+const truncate = (s: string, n: number) => s.length > n ? s.slice(0, n) + '…' : s
+const typeLabel = (t: string) => ({ plain_text:'纯文本', markdown:'Markdown', html:'HTML' }[t] ?? t)
 </script>
 
 <style scoped>
-.text-output-node {
-  min-width: 200px;
-  border-radius: 8px;
-  background: linear-gradient(135deg, #a1c4fd 0%, #c2e9fb 100%);
-  color: #333;
-  box-shadow: 0 4px 12px rgba(161, 196, 253, 0.4);
-  transition: all 0.3s ease;
+.flow-node {
+  width: 190px;
+  background: #fff;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  overflow: hidden;
+  transition: box-shadow .18s, transform .18s;
 }
-
-.text-output-node:hover {
-  box-shadow: 0 6px 20px rgba(161, 196, 253, 0.5);
+.flow-node:hover {
+  box-shadow: 0 6px 18px rgba(0,0,0,0.1);
   transform: translateY(-2px);
 }
-
-.text-output-node.is-selected {
-  box-shadow: 0 0 0 2px #333, 0 6px 20px rgba(161, 196, 253, 0.6);
+.flow-node.is-selected {
+  border-color: #0ea5e9;
+  box-shadow: 0 0 0 2.5px rgba(14,165,233,.22), 0 6px 18px rgba(0,0,0,.08);
 }
-
 .node-header {
-  padding: 12px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  display: flex; align-items: center; gap: 7px;
+  padding: 9px 12px; border-radius: 10px 10px 0 0;
 }
-
-.node-title {
-  font-weight: 600;
-  font-size: 14px;
+.node-icon {
+  width: 22px; height: 22px;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
 }
-
-.node-content {
-  padding: 12px;
-  font-size: 12px;
+.node-title { font-size: 12.5px; font-weight: 700; flex: 1; letter-spacing: 0.01em; }
+.node-tag {
+  font-size: 10px; font-weight: 600;
+  padding: 1px 6px; border-radius: 5px;
 }
-
-.node-data {
-  margin-bottom: 6px;
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
+.node-body { padding: 8px 12px 10px; }
+.node-empty { padding: 6px 12px 10px; font-size: 11px; color: #d1d5db; }
+.node-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px; }
+.row-label { font-size: 11px; color: #9ca3af; }
+.row-val {
+  font-size: 11px; color: #374151;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  background: #f3f4f6; padding: 1px 6px; border-radius: 4px;
+  max-width: 110px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-
-.node-data.template {
-  flex-direction: column;
-  gap: 4px;
+:deep(.vue-flow__handle) {
+  width: 10px; height: 10px;
+  background: #fff; border: 2px solid #0ea5e9; border-radius: 50%;
+  transition: transform .15s, box-shadow .15s;
 }
-
-.data-label {
-  opacity: 0.8;
+:deep(.vue-flow__handle:hover) {
+  transform: scale(1.4);
+  box-shadow: 0 0 0 3px rgba(14,165,233,.2);
 }
-
-.data-value {
-  font-family: monospace;
-  background: rgba(0, 0, 0, 0.1);
-  padding: 2px 6px;
-  border-radius: 3px;
-  font-weight: 500;
-}
-
-.template-value {
-  max-width: 100%;
-  word-break: break-all;
-}
-
-.node-footer {
-  padding: 0 12px 12px;
-  display: flex;
-  justify-content: space-between;
-}
-
-.custom-handle {
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: #333;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.custom-handle:hover {
-  transform: scale(1.2);
-  box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.2);
-}
-
-:deep(.vue-flow__handle-target) {
-  background: #333;
-  border: 2px solid #a1c4fd;
-}
-
-:deep(.vue-flow__handle-source) {
-  background: #333;
-  border: 2px solid #a1c4fd;
-}
-
-:deep(.vue-flow__handle-connected) {
-  background: #a1c4fd;
-  border: 2px solid #333;
-}
+:deep(.vue-flow__handle.vue-flow__handle-connected) { background: #0ea5e9; }
 </style>

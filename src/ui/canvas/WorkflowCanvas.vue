@@ -254,13 +254,13 @@ const onDragLeave = (event: DragEvent) => {
   width: 100%;
   height: 100%;
   position: relative;
-  background: var(--el-bg-color-canvas); /* 极浅粉紫色背景 bg-[#f8f6fa] */
+  background: #f8fafc;
   overflow: hidden;
 }
 
 .canvas-container.drag-over {
-  background: rgba(var(--el-color-primary-rgb), 0.05);
-  border: 2px dashed var(--el-color-primary);
+  background: rgba(99, 102, 241, 0.03);
+  border: 2px dashed #a5b4fc;
   transition: all 0.2s ease;
 }
 
@@ -278,78 +278,68 @@ const onDragLeave = (event: DragEvent) => {
   height: 100%;
 }
 
-/* 自定义网格点阵样式 - 按照设计要求实现 */
+/* 点阵网格背景 */
 :deep(.vue-flow__background) {
-  background-size: 20px 20px; /* 每20px一个点 */
-  background-image:
-    radial-gradient(var(--el-border-color-grid) 1px, transparent 1px),
-    radial-gradient(var(--el-border-color-grid) 1px, transparent 1px);
-  background-position: 0 0, 10px 10px; /* 交叉排列 */
-  background-repeat: repeat;
-  background-color: var(--el-bg-color-canvas);
+  background-color: #f8fafc;
+  background-image: radial-gradient(circle, #cbd5e1 1px, transparent 1px);
+  background-size: 24px 24px;
 }
 
-/* 连接点样式 - 按照设计要求实现 */
+/* 全局 handle 样式（被节点内 :deep 覆盖） */
 :deep(.vue-flow__handle) {
-  width: 16px; /* w-4 = 16px */
-  height: 16px; /* h-4 = 16px */
-  border: 2px solid var(--el-border-color-selected); /* border-2 border-[#8e4ccb] */
+  width: 10px;
+  height: 10px;
+  border: 2px solid #6366f1;
   background: white;
   border-radius: 50%;
-  transform: translate(-50%, -50%);
+  transition: transform .15s, box-shadow .15s;
+}
+:deep(.vue-flow__handle:hover) {
+  transform: scale(1.4);
+  box-shadow: 0 0 0 3px rgba(99,102,241,.18);
+}
+:deep(.vue-flow__handle.vue-flow__handle-connected) {
+  background: #6366f1;
 }
 
-:deep(.vue-flow__handle-left) {
-  left: -8px; /* 左侧连接点定位 */
-}
-
-:deep(.vue-flow__handle-right) {
-  left: 100%; /* 右侧连接点定位 */
-  margin-left: -8px;
-}
-
-/* 连接线样式 */
-:deep(.vue-flow__edge) {
-  stroke: var(--el-color-primary-light-3);
+/* 连接线 */
+:deep(.vue-flow__edge-path) {
+  stroke: #a5b4fc;
   stroke-width: 2;
 }
-
-:deep(.vue-flow__edge.animated) {
-  stroke-dasharray: 5, 5;
-  animation: dash 0.5s linear infinite;
+:deep(.vue-flow__edge.selected .vue-flow__edge-path) {
+  stroke: #6366f1;
+  stroke-width: 2.5;
+}
+:deep(.vue-flow__edge:hover .vue-flow__edge-path) {
+  stroke: #818cf8;
 }
 
-@keyframes dash {
-  to {
-    stroke-dashoffset: -10;
-  }
-}
-
-/* 拖拽时的预览样式 */
+/* 拖拽预览线 */
 :deep(.vue-flow__connection-path) {
-  stroke: var(--el-color-primary);
+  stroke: #6366f1;
   stroke-width: 2;
+  stroke-dasharray: 5 4;
 }
 
-/* 滚动条样式 */
+/* 隐藏版权 */
 :deep(.vue-flow__attribution) {
-  display: none; /* 隐藏默认版权信息 */
+  display: none;
 }
 
-/* 空画布样式 */
+/* 空画布 */
 .empty-canvas, .empty-workflow {
   display: flex;
   justify-content: center;
   align-items: center;
   height: 100%;
-  color: var(--el-text-color-placeholder);
-  font-size: 16px;
+  color: #d1d5db;
+  font-size: 14px;
 }
 
-/* 响应式调整 */
 @media (max-width: 1024px) {
   :deep(.vue-flow__background) {
-    background-size: 16px 16px;
+    background-size: 20px 20px;
   }
 }
 </style>

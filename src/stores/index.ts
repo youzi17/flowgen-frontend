@@ -3,6 +3,7 @@
 export { useWorkflowStore } from './workflow-store';
 export { useUIStore } from './ui-store';
 export { useHistoryStore } from './history-store';
+export { useAuthStore } from './auth-store';
 
 // 导出所有store的类型
 export type { WorkflowState, WorkflowNode, Edge } from '@/types/workflow';
@@ -10,7 +11,13 @@ export type { ExecutionContext } from '@/core/workflow-engine/types';
 
 // 导出Store初始化函数
 export const initializeStores = async () => {
+  const { useAuthStore } = await import('./auth-store');
   const { useWorkflowStore } = await import('./workflow-store');
+
+  // 恢复登录状态
+  const authStore = useAuthStore();
+  await authStore.fetchMe();
+
   const workflowStore = useWorkflowStore();
   await workflowStore.initialize();
 };

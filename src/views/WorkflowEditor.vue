@@ -23,15 +23,13 @@
       </div>
     </div>
     
-    <!-- 底部执行面板 -->
-    <Transition name="slide-up">
-      <ExecutionPanel v-if="showBottomPanel" />
-    </Transition>
+    <!-- 执行日志 Modal -->
+    <ExecutionPanel />
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, watch, computed } from 'vue'
+import { onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useWorkflowStore } from '@/stores/workflow-store'
 import { useUIStore } from '@/stores/ui-store'
@@ -44,11 +42,6 @@ const route = useRoute()
 const router = useRouter()
 const workflowStore = useWorkflowStore()
 const uiStore = useUIStore()
-
-// 底部面板可见性
-const showBottomPanel = computed(() => {
-  return uiStore.executionPanelVisible
-})
 
 // 初始化工作流
 onMounted(async () => {
@@ -93,10 +86,10 @@ watch(() => route.params.id, (newId, oldId) => {
   }
 })
 
-// 监听工作流执行状态，自动显示底部面板
+// 监听工作流执行状态，自动弹出执行日志 Modal
 watch(() => workflowStore.isExecuting, (isExecuting) => {
   if (isExecuting) {
-    // 直接设置UI store中的执行面板可见性
+    // 执行时自动弹出执行日志 Modal
     uiStore.executionPanelVisible = true
   }
 })
@@ -168,23 +161,6 @@ watch(() => workflowStore.isExecuting, (isExecuting) => {
   background-color: #f8f6fa; /* bg-[#f8f6fa] 极浅粉紫色 */
   position: relative;
   overflow: auto;
-}
-
-/* 底部面板过渡动画 */
-.slide-up-enter-active,
-.slide-up-leave-active {
-  transition: all 0.3s ease;
-  transform-origin: bottom;
-}
-
-.slide-up-enter-from {
-  transform: translateY(100%);
-  opacity: 0;
-}
-
-.slide-up-leave-to {
-  transform: translateY(100%);
-  opacity: 0;
 }
 
 /* 响应式设计 */

@@ -1,163 +1,108 @@
 <template>
-  <div class="start-node" :class="{ 'is-selected': selected }">
-    <div class="node-header">
-      <el-icon :size="20">
-        <svg viewBox="0 0 1024 1024" width="1em" height="1em" fill="currentColor">
-          <path
-            d="M985.6 544l-300.8-384c-19.2-24.32-51.2-38.4-83.2-35.84-30.72 2.56-58.88 19.2-74.24 46.08L38.4 544c-19.2 25.6-19.2 57.6 0 83.2l486.4 614.4c15.36 26.88 43.52 43.52 74.24 46.08 32 2.56 64-11.52 83.2-35.84l300.8-384c19.2-25.6 19.2-57.6 0-83.2z m-499.2 288L115.2 576l268.8-345.6 268.8 345.6-268.8 345.6z"
-          />
+  <div class="flow-node start-node" :class="{ 'is-selected': selected }">
+    <!-- 彩色 header 区 -->
+    <div class="node-header" style="background:#d1fae5;">
+      <div class="node-icon" style="color:#059669;">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <path d="M3 2l9 5-9 5V2z" fill="currentColor"/>
         </svg>
-      </el-icon>
-      <span class="node-title">开始节点</span>
-    </div>
-    <div class="node-content">
-      <div v-if="data?.initialData" class="node-data">
-        <span class="data-label">初始数据:</span>
-        <span class="data-value">{{
-          data.initialData.length > 20
-            ? data.initialData.substring(0, 20) + '...'
-            : data.initialData
-        }}</span>
       </div>
-      <div v-if="data?.autoExecute" class="node-data">
-        <span class="data-label">自动执行:</span>
-        <span class="data-value">是</span>
+      <span class="node-title" style="color:#065f46;">开始</span>
+      <span v-if="data?.autoExecute" class="node-tag" style="background:#a7f3d0;color:#065f46;">自动</span>
+    </div>
+    <!-- 白色 body -->
+    <div v-if="data?.initialData" class="node-body">
+      <div class="node-row">
+        <span class="row-label">初始数据</span>
+        <span class="row-val">{{ truncate(String(data.initialData), 16) }}</span>
       </div>
     </div>
-    <div class="node-footer">
-      <Handle type="source" :position="Position.Right" :id="'out'" class="custom-handle" />
-    </div>
+    <div v-else class="node-empty">拖入画布后配置</div>
+    <Handle type="source" :position="Position.Right" id="out" />
   </div>
 </template>
 
 <script setup lang="ts">
 import { Handle, Position } from '@vue-flow/core'
-
-interface StartNodeData {
-  initialData?: string
-  autoExecute?: boolean
-  [key: string]: unknown
-}
-
 interface Props {
   id: string
-  data: StartNodeData
+  data: { initialData?: string; autoExecute?: boolean; [k: string]: unknown }
   selected?: boolean
-  targetPosition?: string
-  sourcePosition?: string
 }
-
 defineProps<Props>()
+const truncate = (s: string, n: number) => s.length > n ? s.slice(0, n) + '…' : s
 </script>
 
 <style scoped>
-.start-node {
-  width: 192px;
-  background: rgb(245, 240, 240);
+.flow-node {
+  width: 190px;
+  background: #fff;
+  border: 1.5px solid #e5e7eb;
   border-radius: 12px;
-  border: 2px solid #667eea;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-  transition: all 0.2s ease;
-  /* 移除position: absolute，让Vue Flow管理节点位置 */
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  overflow: hidden;
+  transition: box-shadow .18s, transform .18s;
 }
-
-.start-node:hover {
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+.flow-node:hover {
+  box-shadow: 0 6px 18px rgba(0,0,0,0.1);
   transform: translateY(-2px);
 }
-
-.start-node.is-selected {
-  box-shadow:
-    0 0 0 2px white,
-    0 6px 20px rgba(102, 126, 234, 0.8);
+.flow-node.is-selected {
+  border-color: #10b981;
+  box-shadow: 0 0 0 2.5px rgba(16,185,129,.22), 0 6px 18px rgba(0,0,0,.08);
 }
-
 .node-header {
-  padding: 16px;
   display: flex;
   align-items: center;
-  gap: 8px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 12px 12px 0 0;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  gap: 7px;
+  padding: 9px 12px;
+  border-radius: 10px 10px 0 0;
 }
-
+.node-icon {
+  width: 22px; height: 22px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
 .node-title {
-  font-weight: 600;
-  font-size: 14px;
+  font-size: 12.5px; font-weight: 700; flex: 1;
+  letter-spacing: 0.01em;
 }
-
-.node-content {
-  padding: 16px;
-  font-size: 12px;
-  color: #333;
+.node-tag {
+  font-size: 10px; font-weight: 600;
+  padding: 1px 6px; border-radius: 5px;
 }
-
-.node-data {
-  margin-bottom: 6px;
-  display: flex;
-  justify-content: space-between;
+.node-body {
+  padding: 8px 12px 10px;
 }
-
-.data-label {
-  opacity: 0.9;
+.node-empty {
+  padding: 6px 12px 10px;
+  font-size: 11px;
+  color: #d1d5db;
 }
-
-.data-value {
-  font-family: monospace;
-  background: rgba(102, 126, 234, 0.1);
-  padding: 2px 6px;
-  border-radius: 3px;
+.node-row {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 3px;
 }
-
-.node-footer {
-  padding: 0 16px 16px;
-  display: flex;
-  justify-content: flex-end;
+.row-label { font-size: 11px; color: #9ca3af; }
+.row-val {
+  font-size: 11px; color: #374151;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  background: #f3f4f6; padding: 1px 6px; border-radius: 4px;
+  max-width: 110px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-
-/* 连接点样式 */
-.custom-handle {
-  width: 16px;
-  height: 16px;
-  position: absolute;
-  border: 2px solid #8e4ccb;
+/* Handle 统一样式 */
+:deep(.vue-flow__handle) {
+  width: 10px; height: 10px;
+  background: #fff;
+  border: 2px solid #10b981;
   border-radius: 50%;
-  background: white;
-  cursor: pointer;
-  transition: all 0.2s ease;
+  transition: transform .15s, box-shadow .15s;
 }
-
-.custom-handle:hover {
-  transform: scale(1.2);
-  box-shadow: 0 0 0 4px rgba(142, 76, 203, 0.3);
+:deep(.vue-flow__handle:hover) {
+  transform: scale(1.4);
+  box-shadow: 0 0 0 3px rgba(16,185,129,.2);
 }
-
-:deep(.vue-flow__handle-source) {
-  width: 16px;
-  height: 16px;
-  right: -8px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: white;
-  border: 2px solid #8e4ccb;
-  border-radius: 50%;
-}
-
-:deep(.vue-flow__handle-target) {
-  width: 16px;
-  height: 16px;
-  left: -8px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: white;
-  border: 2px solid #8e4ccb;
-  border-radius: 50%;
-}
-
-:deep(.vue-flow__handle-connected) {
-  background: #8e4ccb;
-  border: 2px solid white;
+:deep(.vue-flow__handle.vue-flow__handle-connected) {
+  background: #10b981;
 }
 </style>

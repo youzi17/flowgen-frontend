@@ -332,6 +332,48 @@ export const useWorkflowStore = defineStore('workflow', () => {
     }
   }
 
+  // 复制工作流（不影响 currentWorkflow）
+  const duplicateWorkflow = async (workflowId: string): Promise<boolean> => {
+    const wf = workflows.value.find((w) => w.id === workflowId)
+    if (!wf) return false
+    const { v4: uuidv4 } = await import('uuid')
+    const copy: WorkflowState = {
+      ...wf,
+      id: uuidv4(),
+      name: `${wf.name} (副本)`,
+      metadata: {
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        version: 1,
+      },
+    }
+    // 暂存当前工作流，保存副本后恢复
+    const prev = currentWorkflow.value
+    currentWorkflow.value = copy
+    const ok = await saveWorkflow()
+    currentWorkflow.value = prev
+    return ok
+  }
+
+  // 导入工作流（不影响 currentWorkflow）
+  const importWorkflow = async (data: WorkflowState): Promise<boolean> => {
+    const { v4: uuidv4 } = await import('uuid')
+    const imported: WorkflowState = {
+      ...data,
+      id: uuidv4(),
+      metadata: {
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        version: 1,
+      },
+    }
+    const prev = currentWorkflow.value
+    currentWorkflow.value = imported
+    const ok = await saveWorkflow()
+    currentWorkflow.value = prev
+    return ok
+  }
+
   // 导出状态和方法
   return {
     // State
@@ -361,5 +403,7 @@ export const useWorkflowStore = defineStore('workflow', () => {
     loadWorkflow,
     createNewWorkflow,
     deleteWorkflow,
+    duplicateWorkflow,
+    importWorkflow,
   }
 })

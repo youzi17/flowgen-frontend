@@ -1,141 +1,90 @@
 <template>
-  <div class="ai-chat-node" :class="{ 'is-selected': selected }">
-    <div class="node-header">
-      <el-icon :size="20" >
-        <svg viewBox="0 0 1024 1024" width="1em" height="1em" fill="currentColor">
-          <path d="M512 0C229.248 0 0 229.248 0 512s229.248 512 512 512 512-229.248 512-512S794.752 0 512 0zm0 928C286.656 928 96 737.344 96 512S286.656 96 512 96s416 190.656 416 416-190.656 416-416 416z" />
-          <path d="M672 464H544V336c0-8.8-7.2-16-16-16s-16 7.2-16 16v128H352c-8.8 0-16 7.2-16 16s7.2 16 16 16h128v128c0 8.8 7.2 16 16 16s16-7.2 16-16V496h128c8.8 0 16-7.2 16-16s-7.2-16-16-16z" />
+  <div class="flow-node ai-node" :class="{ 'is-selected': selected }">
+    <div class="node-header" style="background:#ede9fe;">
+      <div class="node-icon" style="color:#7c3aed;">
+        <!-- Sparkle / AI icon -->
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <path d="M7 1v2M7 11v2M1 7h2M11 7h2M3.22 3.22l1.41 1.41M9.37 9.37l1.41 1.41M3.22 10.78l1.41-1.41M9.37 4.63l1.41-1.41" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          <circle cx="7" cy="7" r="2" fill="currentColor"/>
         </svg>
-      </el-icon>
-      <span class="node-title">AI对话</span>
-    </div>
-    <div class="node-content">
-      <div v-if="data?.model" class="node-data">
-        <span class="data-label">模型:</span>
-        <span class="data-value">{{ data.model }}</span>
       </div>
-      <div v-if="data?.prompt" class="node-data">
-        <span class="data-label">提示词:</span>
-        <span class="data-value">{{ data.prompt.length > 20 ? data.prompt.substring(0, 20) + '...' : data.prompt }}</span>
+      <span class="node-title" style="color:#4c1d95;">AI 对话</span>
+      <span v-if="data?.model" class="node-tag" style="background:#ddd6fe;color:#5b21b6;">{{ shortModel(String(data.model)) }}</span>
+    </div>
+    <div v-if="data?.prompt" class="node-body">
+      <div class="node-row">
+        <span class="row-label">提示词</span>
+        <span class="row-val">{{ truncate(String(data.prompt), 18) }}</span>
       </div>
     </div>
-    <div class="node-footer">
-      <Handle
-        type="target"
-        :position="Position.Left"
-        :id="'in'"
-        class="custom-handle"
-      />
-      <Handle
-        type="source"
-        :position="Position.Right"
-        :id="'out'"
-        class="custom-handle"
-      />
-    </div>
+    <div v-else class="node-empty">配置模型与提示词</div>
+    <Handle type="target" :position="Position.Left" id="in" />
+    <Handle type="source" :position="Position.Right" id="out" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { Handle, Position } from '@vue-flow/core';
-
+import { Handle, Position } from '@vue-flow/core'
 interface Props {
-  id: string;
-  data: Record<string, unknown> & { model?: string; prompt?: string };
-  selected?: boolean;
-  targetPosition?: string;
-  sourcePosition?: string;
+  id: string
+  data: { model?: string; prompt?: string; [k: string]: unknown }
+  selected?: boolean
 }
-
-defineProps<Props>();
+defineProps<Props>()
+const truncate = (s: string, n: number) => s.length > n ? s.slice(0, n) + '…' : s
+const shortModel = (m: string) => m.length > 12 ? m.slice(0, 12) + '…' : m
 </script>
 
 <style scoped>
-.ai-chat-node {
-  min-width: 200px;
-  border-radius: 8px;
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-  color: white;
-  box-shadow: 0 4px 12px rgba(79, 172, 254, 0.4);
-  transition: all 0.3s ease;
+.flow-node {
+  width: 190px;
+  background: #fff;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  overflow: hidden;
+  transition: box-shadow .18s, transform .18s;
 }
-
-.ai-chat-node:hover {
-  box-shadow: 0 6px 20px rgba(79, 172, 254, 0.5);
+.flow-node:hover {
+  box-shadow: 0 6px 18px rgba(0,0,0,0.1);
   transform: translateY(-2px);
 }
-
-.ai-chat-node.is-selected {
-  box-shadow: 0 0 0 2px white, 0 6px 20px rgba(79, 172, 254, 0.6);
+.flow-node.is-selected {
+  border-color: #8b5cf6;
+  box-shadow: 0 0 0 2.5px rgba(139,92,246,.22), 0 6px 18px rgba(0,0,0,.08);
 }
-
 .node-header {
-  padding: 12px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  display: flex; align-items: center; gap: 7px;
+  padding: 9px 12px; border-radius: 10px 10px 0 0;
 }
-
-.node-title {
-  font-weight: 600;
-  font-size: 14px;
+.node-icon {
+  width: 22px; height: 22px;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
 }
-
-.node-content {
-  padding: 12px;
-  font-size: 12px;
+.node-title { font-size: 12.5px; font-weight: 700; flex: 1; letter-spacing: 0.01em; }
+.node-tag {
+  font-size: 10px; font-weight: 600;
+  padding: 1px 6px; border-radius: 5px;
+  max-width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-
-.node-data {
-  margin-bottom: 6px;
-  display: flex;
-  justify-content: space-between;
+.node-body { padding: 8px 12px 10px; }
+.node-empty { padding: 6px 12px 10px; font-size: 11px; color: #d1d5db; }
+.node-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px; }
+.row-label { font-size: 11px; color: #9ca3af; }
+.row-val {
+  font-size: 11px; color: #374151;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  background: #f3f4f6; padding: 1px 6px; border-radius: 4px;
+  max-width: 110px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-
-.data-label {
-  opacity: 0.9;
+:deep(.vue-flow__handle) {
+  width: 10px; height: 10px;
+  background: #fff; border: 2px solid #8b5cf6; border-radius: 50%;
+  transition: transform .15s, box-shadow .15s;
 }
-
-.data-value {
-  font-family: monospace;
-  background: rgba(255, 255, 255, 0.1);
-  padding: 2px 6px;
-  border-radius: 3px;
+:deep(.vue-flow__handle:hover) {
+  transform: scale(1.4);
+  box-shadow: 0 0 0 3px rgba(139,92,246,.2);
 }
-
-.node-footer {
-  padding: 0 12px 12px;
-  display: flex;
-  justify-content: space-between;
-}
-
-.custom-handle {
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: white;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.custom-handle:hover {
-  transform: scale(1.2);
-  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.3);
-}
-
-:deep(.vue-flow__handle-target) {
-  background: white;
-  border: 2px solid #4facfe;
-}
-
-:deep(.vue-flow__handle-source) {
-  background: white;
-  border: 2px solid #4facfe;
-}
-
-:deep(.vue-flow__handle-connected) {
-  background: #4facfe;
-  border: 2px solid white;
-}
+:deep(.vue-flow__handle.vue-flow__handle-connected) { background: #8b5cf6; }
 </style>
