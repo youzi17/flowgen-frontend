@@ -47,7 +47,7 @@
           <el-button
             size="small"
             @click="copyLogs"
-            :disabled="!workflowStore.executionLogs.length"
+            :disabled="!hasLogs"
             class="copy-button"
           >
             复制日志
@@ -55,7 +55,12 @@
         </div>
         <!-- 日志内容 -->
         <div class="logs-container">
-          <pre ref="logsContainer" class="logs-content">{{ logs }}</pre>
+          <pre v-if="hasLogs" ref="logsContainer" class="logs-content">{{ logs }}</pre>
+          <div v-else class="empty-logs-state">
+            <el-icon class="empty-logs-icon"><InfoFilled /></el-icon>
+            <p class="empty-logs-title">日志会在执行后出现</p>
+            <p class="empty-logs-text">点击“执行工作流”后，这里会实时展示运行过程。</p>
+          </div>
         </div>
       </el-tab-pane>
 
@@ -98,7 +103,7 @@ import { ref, computed, watch, nextTick } from 'vue'
 import { useWorkflowStore } from '@/stores/workflow-store'
 import { useUIStore } from '@/stores/ui-store'
 import { ElTabs, ElTabPane, ElTag, ElButton, ElMessage, ElDialog, ElIcon } from 'element-plus'
-import { VideoPlay, Loading } from '@element-plus/icons-vue'
+import { VideoPlay, Loading, InfoFilled } from '@element-plus/icons-vue'
 import type { WorkflowNode } from '@/types/workflow'
 
 const workflowStore = useWorkflowStore()
@@ -194,12 +199,16 @@ const executionContext = computed(() => workflowStore.executionContext || {})
 // 判断是否有执行结果
 const hasResults = computed(() => Object.keys(executionContext.value).length > 0)
 
+const hasLogs = computed(
+  () => Array.isArray(workflowStore.executionLogs) && workflowStore.executionLogs.length > 0,
+)
+
 // 执行日志
 const logs = computed(() => {
-  if (Array.isArray(workflowStore.executionLogs) && workflowStore.executionLogs.length > 0) {
+  if (hasLogs.value) {
     return workflowStore.executionLogs.join('\n')
   }
-  return '暂无执行日志\n请执行工作流查看日志输出'
+  return ''
 })
 
 // 根据节点ID获取节点名称
@@ -236,21 +245,21 @@ const getNodeName = (nodeId: string): string => {
 }
 
 .title-icon {
-  color: #8e4ccb;
+  color: #5f7ea8;
   font-size: 20px;
 }
 
 .title-text {
   font-size: 16px;
   font-weight: 600;
-  color: #5a2790;
+  color: #2f4559;
 }
 
 .status-tag {
   display: flex;
   align-items: center;
   gap: 4px;
-  background-color: #8e4ccb;
+  background-color: #5f7ea8;
   color: white;
   border: none;
   padding: 2px 10px;
@@ -261,7 +270,7 @@ const getNodeName = (nodeId: string): string => {
 /* Tabs */
 .custom-tabs :deep(.el-tabs__header) {
   margin: 0 0 16px 0;
-  border-bottom: 1px solid #f0e8ff;
+  border-bottom: 1px solid #dde7ef;
 }
 
 .custom-tabs :deep(.el-tabs__nav) {
@@ -281,16 +290,16 @@ const getNodeName = (nodeId: string): string => {
 }
 
 .custom-tabs :deep(.el-tabs__item:hover) {
-  color: #8e4ccb;
-  background-color: #faf5ff;
-  border-color: #f0e8ff;
+  color: #496683;
+  background-color: #f2f6fa;
+  border-color: #dce7ef;
 }
 
 .custom-tabs :deep(.el-tabs__item.is-active) {
-  background-color: #8e4ccb;
+  background-color: #5f7ea8;
   color: white;
-  border-color: #8e4ccb;
-  box-shadow: 0 2px 8px rgba(142, 76, 203, 0.2);
+  border-color: #5f7ea8;
+  box-shadow: 0 8px 18px rgba(95, 126, 168, 0.24);
 }
 
 /* 日志区域 */
@@ -314,7 +323,7 @@ const getNodeName = (nodeId: string): string => {
 }
 
 .copy-button {
-  border-radius: 6px;
+  border-radius: 10px;
   font-size: 12px;
 }
 
@@ -325,15 +334,49 @@ const getNodeName = (nodeId: string): string => {
 
 .logs-content {
   padding: 16px;
-  background: #f5f7fa;
-  border: 1px solid #ebeef5;
-  border-radius: 8px;
+  background: rgba(246, 250, 252, 0.88);
+  border: 1px solid #dde7ef;
+  border-radius: 12px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
   font-size: 13px;
   line-height: 1.6;
   white-space: pre-wrap;
   word-break: break-all;
   margin: 0;
+}
+
+.empty-logs-state {
+  min-height: 180px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 8px;
+  padding: 24px;
+  background: rgba(246, 250, 252, 0.82);
+  border: 1px solid #dde7ef;
+  border-radius: 12px;
+}
+
+.empty-logs-icon {
+  font-size: 20px;
+  color: #6d879f;
+}
+
+.empty-logs-title {
+  margin: 0;
+  color: #2f4559;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.empty-logs-text {
+  margin: 0;
+  color: #607284;
+  font-size: 13px;
+  line-height: 1.7;
 }
 
 /* 执行结果区域 */
@@ -456,7 +499,7 @@ const getNodeName = (nodeId: string): string => {
 .results-container::-webkit-scrollbar-thumb,
 .output-content::-webkit-scrollbar-thumb,
 .error-content::-webkit-scrollbar-thumb {
-  background: #d9c8f0;
+  background: #c2d2e1;
   border-radius: 4px;
 }
 
@@ -464,23 +507,25 @@ const getNodeName = (nodeId: string): string => {
 .results-container::-webkit-scrollbar-thumb:hover,
 .output-content::-webkit-scrollbar-thumb:hover,
 .error-content::-webkit-scrollbar-thumb:hover {
-  background: #8e4ccb;
+  background: #6887a8;
 }
 </style>
 
 <!-- 全局样式覆盖 el-dialog -->
 <style>
 .execution-dialog .el-dialog {
-  border-radius: 16px;
+  border-radius: 20px;
   overflow: hidden;
-  box-shadow: 0 20px 60px rgba(90, 39, 144, 0.15), 0 8px 24px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  background: linear-gradient(170deg, rgba(248, 251, 252, 0.96), rgba(243, 248, 251, 0.94));
+  box-shadow: 0 22px 50px rgba(71, 95, 120, 0.2), 0 10px 26px rgba(0, 0, 0, 0.08);
 }
 
 .execution-dialog .el-dialog__header {
   padding: 16px 20px;
   margin: 0;
-  background: #faf5ff;
-  border-bottom: 1px solid #f0e8ff;
+  background: rgba(241, 247, 251, 0.9);
+  border-bottom: 1px solid #dde7ef;
 }
 
 .execution-dialog .el-dialog__body {
@@ -489,7 +534,7 @@ const getNodeName = (nodeId: string): string => {
 
 /* 遮罩层 - 半透明灰色，突出 dialog */
 .execution-dialog .el-overlay {
-  background-color: rgba(0, 0, 0, 0.45);
-  backdrop-filter: blur(2px);
+  background-color: rgba(62, 76, 90, 0.28);
+  backdrop-filter: blur(4px);
 }
 </style>

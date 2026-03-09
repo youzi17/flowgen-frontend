@@ -1,14 +1,12 @@
 <template>
-  <!-- 添加容器包装并绑定拖拽事件 -->
+  <!-- 画布容器，绑定拖拽事件 -->
   <div
     class="canvas-container"
+    :class="{ 'drag-over': isDragOver }"
     @drop="onDrop"
     @dragover="onDragOver"
     @dragenter="onDragEnter"
     @dragleave="onDragLeave"
-    @dragover.prevent
-    @dragenter.prevent
-    @drop.prevent
   >
     <VueFlow
       v-if="hasCurrentWorkflow && workflow.currentWorkflow"
@@ -41,70 +39,73 @@
 
 <script setup lang="ts">
 import { VueFlow, useVueFlow, type Connection, type NodeMouseEvent } from '@vue-flow/core'
+import { Background } from '@vue-flow/background'
+import { Controls } from '@vue-flow/controls'
 import { defineAsyncComponent, ref, computed } from 'vue'
+import { ElMessageBox } from 'element-plus'
 import { useWorkflowStore } from '@/stores/workflow-store'
 import { useUIStore } from '@/stores/ui-store'
 import { useHistoryStore } from '@/stores/history-store'
-import type { NodeType } from '@/types/workflow'
+import type { NodeType, BaseNodeData } from '@/types/workflow'
 
-// 业务逻辑
 const workflow = useWorkflowStore()
 const ui = useUIStore()
 const history = useHistoryStore()
 
-// 使用 VueFlow 的 API 来转换坐标
+// VueFlow API - 用于坐标转换
 const { project } = useVueFlow()
 
-// 检查是否有当前工作流，避免空值错误
-const hasCurrentWorkflow = computed(() => {
-  return workflow.currentWorkflow !== null
-})
+// 是否有当前工作流
+const hasCurrentWorkflow = computed(() => workflow.currentWorkflow !== null)
 
-// 当前选中的待删除元素
-const elementToDelete = ref<{type: 'node' | 'edge'; id: string} | null>(null)
-
-// 拖拽状态管理
+// 拖拽悬停状态
 const isDragOver = ref(false)
 
-const nodeTypes = [
+// 支持的节点类型列表
+const nodeTypes: NodeType[] = [
   'start',
   'ai-chat',
   'condition',
   'end',
   'data-process',
   'text-output',
-] as NodeType[]
+]
 
+// 节点类型校验
+const isValidNodeType = (type: string): type is NodeType =>
+  (nodeTypes as string[]).includes(type)
+
+// 异步组件缓存，避免重复创建
+const nodeComponentCache = new Map<NodeType, ReturnType<typeof defineAsyncComponent>>()
 const getNodeComponent = (type: NodeType) => {
-  return defineAsyncComponent(() => import(`@/ui/nodes/${type}-node.vue`))
+  if (!nodeComponentCache.has(type)) {
+    nodeComponentCache.set(type, defineAsyncComponent(() => import(`@/ui/nodes/${type}-node.vue`)))
+  }
+  return nodeComponentCache.get(type)!
 }
 
+// 节点点击
 const onNodeClick = (event: NodeMouseEvent) => {
-  if (ui.isEditMode) {
-    // 在编辑模式下，点击不选中节点，而是用于准备删除
-    console.log('编辑模式下点击节点:', event.node.id)
-  } else {
+  if (!ui.isEditMode) {
     ui.selectNode(event.node.id)
   }
 }
 
-const onNodeDblClick = (event: NodeMouseEvent) => {
-  if (ui.isEditMode && hasCurrentWorkflow.value && workflow.currentWorkflow) {
-    console.log('编辑模式下双击删除节点:', event.node.id)
-    
-    // 存储待删除元素
-    elementToDelete.value = { type: 'node', id: event.node.id }
-    
-    // 显示确认对话框
-    if (confirm(`确定要删除节点 "${(event.node.data as Record<string, unknown>)?.title || event.node.id}" 吗？`)) {
-      // 调用工作流存储中的删除方法（后续实现）
-      console.log('删除节点:', event.node.id)
-      workflow.deleteNode(event.node.id)
-      history.pushState()
-    }
-    
-    // 清除待删除元素
-    elementToDelete.value = null
+// 节点双击删除（编辑模式）
+const onNodeDblClick = async (event: NodeMouseEvent) => {
+  if (!ui.isEditMode || !hasCurrentWorkflow.value || !workflow.currentWorkflow) return
+
+  const title = (event.node.data as BaseNodeData)?.title ?? event.node.id
+  try {
+    await ElMessageBox.confirm(`确定要删除节点 "${title}" 吗？`, '删除确认', {
+      confirmButtonText: '删除',
+      cancelButtonText: '取消',
+      type: 'warning',
+    })
+    workflow.deleteNode(event.node.id)
+    history.pushState()
+  } catch {
+    // 用户取消，不做处理
   }
 }
 
@@ -113,37 +114,28 @@ interface EdgeClickEvent {
   edge: { id: string; source: string; target: string }
 }
 
-const onEdgeClick = (event: EdgeClickEvent) => {
-  if (ui.isEditMode) {
-    console.log('编辑模式下点击连线:', event.edge.id)
-    // 在编辑模式下高亮显示点击的连线
-    if (event.edge) {
-      // 这里可以添加连线高亮逻辑
-      console.log('高亮连线:', event.edge.id)
-    }
+const onEdgeClick = (_event: EdgeClickEvent) => {
+  // 编辑模式下可扩展连线高亮逻辑
+}
+
+// 边双击删除（编辑模式）
+const onEdgeDblClick = async (event: EdgeClickEvent) => {
+  if (!ui.isEditMode || !hasCurrentWorkflow.value || !workflow.currentWorkflow) return
+
+  try {
+    await ElMessageBox.confirm('确定要删除这条连线吗？', '删除确认', {
+      confirmButtonText: '删除',
+      cancelButtonText: '取消',
+      type: 'warning',
+    })
+    workflow.deleteEdge(event.edge.id)
+    history.pushState()
+  } catch {
+    // 用户取消
   }
 }
 
-const onEdgeDblClick = (event: EdgeClickEvent) => {
-  if (ui.isEditMode && hasCurrentWorkflow.value && workflow.currentWorkflow) {
-    console.log('编辑模式下双击删除连线:', event.edge.id)
-    
-    // 存储待删除元素
-    elementToDelete.value = { type: 'edge', id: event.edge.id }
-    
-    // 显示确认对话框
-    if (confirm('确定要删除这条连线吗？')) {
-      // 调用工作流存储中的删除方法（后续实现）
-      console.log('删除连线:', event.edge.id)
-      workflow.deleteEdge(event.edge.id)
-      history.pushState()
-    }
-    
-    // 清除待删除元素
-    elementToDelete.value = null
-  }
-}
-
+// 连接节点
 const onConnect = (connection: Connection) => {
   workflow.addEdge({
     source: connection.source,
@@ -154,96 +146,70 @@ const onConnect = (connection: Connection) => {
   history.pushState()
 }
 
-// 增强 onDrop 事件处理
+// 拖拽放置 - 添加节点
 const onDrop = (event: DragEvent) => {
   event.preventDefault()
   event.stopPropagation()
   isDragOver.value = false
 
-  console.log('📥 onDrop 事件触发!')
-
-  // 获取多种格式的数据，优先使用节点类型格式
   const type =
     event.dataTransfer?.getData('application/node-type') ||
     event.dataTransfer?.getData('text/plain')
   const jsonData = event.dataTransfer?.getData('application/json')
 
-  console.log('📥 接收到拖拽数据:', {
-    nodeType: event.dataTransfer?.getData('application/node-type'),
-    textType: event.dataTransfer?.getData('text/plain'),
-    type: type,
-    hasJson: !!jsonData,
-  })
-
-  if (!type) {
-    console.error('❌ 未找到节点类型数据，检查拖拽源')
+  if (!type || !isValidNodeType(type)) {
+    console.warn('无效的节点类型:', type)
     return
   }
 
   try {
     // 使用 VueFlow 的 project 方法将屏幕坐标转换为画布坐标
-    // 这样可以正确处理缩放和平移
-    const position = project({
-      x: event.clientX,
-      y: event.clientY,
-    })
+    const position = project({ x: event.clientX, y: event.clientY })
 
-    console.log('📍 转换后的画布坐标:', position)
-
-    // 解析完整的节点数据
     if (jsonData) {
       try {
-        const nodeData = JSON.parse(jsonData)
-        console.log('📋 解析的节点数据:', nodeData)
-        // 添加节点并合并默认数据
-        const newNode = workflow.addNode(type as NodeType, position)
+        const nodeData = JSON.parse(jsonData) as { defaultData?: BaseNodeData }
+        const newNode = workflow.addNode(type, position)
         if (nodeData.defaultData) {
           workflow.updateNodeData(newNode.id, nodeData.defaultData)
         }
-      } catch (parseError) {
-        console.error('❌ 解析节点数据失败:', parseError)
-        workflow.addNode(type as NodeType, position)
+      } catch {
+        workflow.addNode(type, position)
       }
     } else {
-      // 如果没有额外数据，只传递类型和位置
-      workflow.addNode(type as NodeType, position)
+      workflow.addNode(type, position)
     }
 
     history.pushState()
-    console.log('✅ 节点添加成功:', type)
   } catch (error) {
-    console.error('❌ 添加节点失败:', error)
+    console.error('添加节点失败:', error)
   }
 }
 
-// 增强拖拽悬停处理
+// 拖拽悬停
 const onDragOver = (event: DragEvent) => {
   event.preventDefault()
   event.stopPropagation()
   if (event.dataTransfer) {
     event.dataTransfer.dropEffect = 'copy'
   }
-  console.log('↕️ onDragOver 事件触发')
 }
 
-// 添加拖拽进入事件
+// 拖拽进入画布
 const onDragEnter = (event: DragEvent) => {
   event.preventDefault()
   event.stopPropagation()
   isDragOver.value = true
-  console.log('🎯 拖拽进入画布')
 }
 
-// 添加拖拽离开事件
+// 拖拽离开画布
 const onDragLeave = (event: DragEvent) => {
   event.preventDefault()
   event.stopPropagation()
-  // 防止子元素触发 dragleave
   const currentTarget = event.currentTarget as HTMLElement | null
   const relatedTarget = event.relatedTarget as Node | null
   if (!currentTarget || !relatedTarget || !currentTarget.contains(relatedTarget)) {
     isDragOver.value = false
-    console.log('👋 拖拽离开画布')
   }
 }
 </script>
@@ -285,7 +251,7 @@ const onDragLeave = (event: DragEvent) => {
   background-size: 24px 24px;
 }
 
-/* 全局 handle 样式（被节点内 :deep 覆盖） */
+/* 全局 handle 样式 */
 :deep(.vue-flow__handle) {
   width: 10px;
   height: 10px;

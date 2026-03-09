@@ -29,10 +29,11 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, watch } from 'vue'
+import { onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useWorkflowStore } from '@/stores/workflow-store'
 import { useUIStore } from '@/stores/ui-store'
+import { ElMessage } from 'element-plus'
 import WorkflowCanvas from '@/ui/canvas/WorkflowCanvas.vue'
 import NodePalette from '@/ui/palette/NodePalette.vue'
 import MainToolbar from '@/ui/toolbar/MainToolbar.vue'
@@ -61,20 +62,26 @@ onMounted(async () => {
   
   // 设置最小宽度
   document.body.style.minWidth = '1024px'
-  
+
   // 清除之前选择的节点
   uiStore.selectNode(null)
+})
+
+// 离开页面时恢复 body 样式
+onUnmounted(() => {
+  document.body.style.minWidth = ''
 })
 
 const loadWorkflowById = async (id: string) => {
   try {
     const loaded = await workflowStore.loadWorkflow(id)
     if (!loaded) {
+      ElMessage.error('工作流不存在或加载失败')
       router.push('/workflows')
     }
   } catch (error) {
-    // 如果加载失败，重定向到工作流管理页面
-    console.error('Failed to load workflow:', error)
+    console.error('加载工作流失败:', error)
+    ElMessage.error('加载工作流失败')
     router.push('/workflows')
   }
 }

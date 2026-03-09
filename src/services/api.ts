@@ -79,54 +79,90 @@ export const authApi = {
 
 // ---- Workflows ----
 
-export interface WorkflowDto {
+import type { WorkflowNode, Edge } from '@/types/workflow'
+
+/** 工作流列表项（不含 nodes/edges 大字段） */
+export interface WorkflowListItemDto {
   id: string
   name: string
-  description?: string
-  nodes: unknown[]
-  edges: unknown[]
+  description: string | null
   version: number
   createdAt: string
   updatedAt: string
 }
 
+/** 工作流详情（含 nodes/edges） */
+export interface WorkflowDetailDto extends WorkflowListItemDto {
+  nodes: WorkflowNode[]
+  edges: Edge[]
+}
+
+/** 创建工作流请求体 */
 export interface CreateWorkflowDto {
   name: string
   description?: string
-  nodes?: unknown[]
-  edges?: unknown[]
+  nodes?: WorkflowNode[]
+  edges?: Edge[]
 }
 
+/** 更新工作流请求体 */
 export interface UpdateWorkflowDto {
   name?: string
   description?: string
-  nodes?: unknown[]
-  edges?: unknown[]
+  nodes?: WorkflowNode[]
+  edges?: Edge[]
+}
+
+/** 导入工作流请求体 */
+export interface ImportWorkflowDto {
+  name: string
+  description?: string | null
+  nodes: WorkflowNode[]
+  edges: Edge[]
+  metadata?: {
+    createdAt: string
+    updatedAt: string
+    version?: number
+  }
 }
 
 export const workflowApi = {
-  list: () => request<WorkflowDto[]>('/workflows'),
+  /** 获取当前用户的工作流列表 */
+  list: () => request<WorkflowListItemDto[]>('/workflows'),
 
-  get: (id: string) => request<WorkflowDto>(`/workflows/${id}`),
+  /** 获取工作流详情 */
+  get: (id: string) => request<WorkflowDetailDto>(`/workflows/${id}`),
 
+  /** 创建工作流 */
   create: (dto: CreateWorkflowDto) =>
-    request<WorkflowDto>('/workflows', { method: 'POST', body: JSON.stringify(dto) }),
+    request<WorkflowDetailDto>('/workflows', { method: 'POST', body: JSON.stringify(dto) }),
 
+  /** 更新工作流 */
   update: (id: string, dto: UpdateWorkflowDto) =>
-    request<WorkflowDto>(`/workflows/${id}`, { method: 'PUT', body: JSON.stringify(dto) }),
+    request<WorkflowDetailDto>(`/workflows/${id}`, { method: 'PUT', body: JSON.stringify(dto) }),
 
-  delete: (id: string) => request<void>(`/workflows/${id}`, { method: 'DELETE' }),
+  /** 删除工作流 */
+  delete: (id: string) => request<null>(`/workflows/${id}`, { method: 'DELETE' }),
 
+  /** 复制工作流 */
   duplicate: (id: string) =>
-    request<WorkflowDto>(`/workflows/${id}/duplicate`, { method: 'POST' }),
+    request<WorkflowDetailDto>(`/workflows/${id}/duplicate`, { method: 'POST' }),
 
-  exportJson: (id: string) => request<WorkflowDto>(`/workflows/${id}/export`),
+  /** 导出工作流 JSON */
+  exportJson: (id: string) => request<WorkflowDetailDto>(`/workflows/${id}/export`),
 
-  importJson: (data: unknown) =>
-    request<WorkflowDto>('/workflows/import', { method: 'POST', body: JSON.stringify(data) }),
+  /** 导入工作流 JSON */
+  importJson: (dto: ImportWorkflowDto) =>
+    request<WorkflowDetailDto>('/workflows/import', { method: 'POST', body: JSON.stringify(dto) }),
 }
 
 // ---- Execution ----
+
+/** 异步执行启动响应（对应后端 ExecutionStartDto） */
+export interface ExecutionStartDto {
+  logId: string
+  status: 'running'
+}
 
 export interface ExecutionLogDto {
   id: string
@@ -140,8 +176,12 @@ export interface ExecutionLogDto {
 }
 
 export const executionApi = {
-  run: (workflowId: string) =>
-    request<ExecutionLogDto>(`/execution/${workflowId}/run`, { method: 'POST' }),
+  /** 异步启动工作流执行，返回 logId 用于 SSE 订阅 */
+  run: (workflowId: string, initialVariables?: Record<string, unknown>) =>
+    request<ExecutionStartDto>(`/execution/${workflowId}/run`, {
+      method: 'POST',
+      body: JSON.stringify({ initialVariables }),
+    }),
 
   logs: (workflowId: string) =>
     request<ExecutionLogDto[]>(`/execution/${workflowId}/logs`),

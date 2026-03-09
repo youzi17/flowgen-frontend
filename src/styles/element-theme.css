@@ -1,24 +1,24 @@
 :root {
   /* ===== 主色 ===== */
-  --el-color-primary: #8e4ccb; /* 紫色 */
-  --el-color-primary-rgb: 142, 76, 203;
+  --el-color-primary: #5f7ea8; /* 低饱和雾蓝 */
+  --el-color-primary-rgb: 95, 126, 168;
 
   /* 深色变体（用于 hover / active / border）*/
-  --el-color-primary-dark-2: #7a3fb8; /* 深紫色 */
+  --el-color-primary-dark-2: #4f6f92; /* 深雾蓝 */
 
   /* 浅色变体（用于背景、悬浮面板等）*/
-  --el-color-primary-light-1: #f0e8ff; /* 柔和紫色，顶部导航栏背景 */
-  --el-color-primary-light-2: #c5a7e8;
-  --el-color-primary-light-3: #d9c8f0;
-  --el-color-primary-light-4: #eadaf7;
-  --el-color-primary-light-5: #f8f6fa; /* 极浅粉紫色，画布背景 */
+  --el-color-primary-light-1: #eaf2f8; /* 柔和雾蓝 */
+  --el-color-primary-light-2: #d4e0ed;
+  --el-color-primary-light-3: #c1d2e4;
+  --el-color-primary-light-4: #edf4f9;
+  --el-color-primary-light-5: #f5f8fb; /* 画布背景 */
   --el-color-primary-light-9: #ffffff; /* 纯白色，侧边栏和节点背景 */
 
   /* 边框色系 */
   --el-border-color-default: #e5e7eb; /* 浅灰色，默认边框 */
-  --el-border-color-nav-bottom: #d9c8f0; /* 浅紫色，导航栏底部边框 */
-  --el-border-color-grid: #e5d9f2; /* 浅紫色点，网格点阵 */
-  --el-border-color-selected: #8e4ccb; /* 品牌色，选中边框 */
+  --el-border-color-nav-bottom: #d6e3ef; /* 浅雾蓝，导航栏底部边框 */
+  --el-border-color-grid: #dce6f1; /* 浅雾蓝点，网格点阵 */
+  --el-border-color-selected: #5f7ea8; /* 品牌色，选中边框 */
 
   /* 背景色系 */
   --el-bg-color-topnav: var(--el-color-primary-light-1); /* 顶部导航栏背景 */

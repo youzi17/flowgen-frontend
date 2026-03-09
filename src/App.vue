@@ -14,9 +14,12 @@ import AppLayout from './ui/layout/AppLayout.vue';
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-family: 'Avenir Next', 'Segoe UI Variable', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei',
+    sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  color: #34495e;
+  background: linear-gradient(145deg, #eef2f5, #f6f4f1 45%, #edf2f7);
 }
 
 #app {

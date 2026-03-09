@@ -7,7 +7,7 @@
         <div class="header-left">
           <router-link to="/workflows" class="header-logo">
             <svg width="22" height="22" viewBox="0 0 28 28" fill="none">
-              <rect width="28" height="28" rx="8" fill="#6366f1" />
+              <rect width="28" height="28" rx="8" fill="#6f8ea8" />
               <path d="M7 14h4l3-6 3 12 3-6h4" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
             </svg>
             <span class="logo-text">FlowGen</span>
@@ -71,9 +71,6 @@ const workflow = useWorkflowStore()
 const auth = useAuthStore()
 
 const workflowName = computed(() => workflow.currentWorkflow?.name || '未命名工作流')
-
-// 确保执行面板默认展开
-ui.executionPanelVisible = true
 </script>
 
 <style scoped>
@@ -82,18 +79,24 @@ ui.executionPanelVisible = true
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: #f8f9ff;
+  background:
+    radial-gradient(1100px 500px at -15% -20%, rgba(168, 202, 208, 0.28) 0%, rgba(168, 202, 208, 0) 65%),
+    radial-gradient(900px 420px at 105% -25%, rgba(196, 186, 224, 0.22) 0%, rgba(196, 186, 224, 0) 62%),
+    linear-gradient(145deg, #eef2f5 0%, #f6f4f1 45%, #edf2f7 100%);
   min-width: 1024px;
 }
 
 /* 顶部导航栏 - glassmorphism */
 .app-header {
-  height: 56px;
-  background: rgba(255, 255, 255, 0.88);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border-bottom: 1px solid rgba(229, 231, 235, 0.8);
-  padding: 0 20px;
+  height: 62px;
+  background: rgba(247, 250, 252, 0.7);
+  backdrop-filter: blur(14px) saturate(105%);
+  -webkit-backdrop-filter: blur(14px) saturate(105%);
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  box-shadow: 0 10px 28px rgba(77, 101, 126, 0.1);
+  margin: 12px 14px 10px;
+  border-radius: 18px;
+  padding: 0 18px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -117,7 +120,7 @@ ui.executionPanelVisible = true
 .logo-text {
   font-size: 15px;
   font-weight: 700;
-  color: #1e1b4b;
+  color: #2f495f;
   letter-spacing: -0.3px;
 }
 
@@ -129,7 +132,7 @@ ui.executionPanelVisible = true
 
 .workflow-name {
   font-size: 13px;
-  color: #6b7280;
+  color: #6a7887;
   max-width: 200px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -151,9 +154,11 @@ ui.executionPanelVisible = true
 
 .user-badge {
   font-size: 13px;
-  color: #6b7280;
-  background: #f3f4f6;
-  padding: 4px 10px;
+  color: #5e6f80;
+  background: rgba(245, 248, 250, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  padding: 5px 10px;
   border-radius: 20px;
   max-width: 160px;
   overflow: hidden;
@@ -166,13 +171,18 @@ ui.executionPanelVisible = true
   flex: 1;
   display: flex;
   overflow: hidden;
+  gap: 12px;
+  padding: 0 14px 14px;
 }
 
 /* 左侧侧边栏 */
 .sidebar {
   width: 280px;
-  background: #ffffff;
-  border-right: 1px solid #f0f0f5;
+  background: rgba(248, 251, 252, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: 20px;
+  box-shadow: 0 8px 24px rgba(78, 99, 123, 0.08);
+  backdrop-filter: blur(12px);
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -183,7 +193,11 @@ ui.executionPanelVisible = true
 /* 画布区域 */
 .canvas {
   flex: 1;
-  background: #f4f4f8;
+  background: rgba(246, 249, 251, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: 20px;
+  box-shadow: 0 10px 28px rgba(74, 96, 122, 0.08);
+  backdrop-filter: blur(10px);
   padding: 0;
   overflow: hidden;
   position: relative;
@@ -192,8 +206,11 @@ ui.executionPanelVisible = true
 /* 配置面板（右侧） */
 .config-panel {
   width: 300px;
-  background: #ffffff;
-  border-left: 1px solid #f0f0f5;
+  background: rgba(248, 251, 252, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: 20px;
+  box-shadow: 0 8px 24px rgba(78, 99, 123, 0.08);
+  backdrop-filter: blur(12px);
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -203,13 +220,14 @@ ui.executionPanelVisible = true
 /* 底部面板 */
 .bottom-panel {
   flex-shrink: 0;
-  border-top: 1px solid #f0f0f5;
-  background: #ffffff;
+  background: transparent;
 }
 
 @media (max-width: 1024px) {
   .app-layout { min-width: unset; }
   .sidebar, .config-panel { width: 260px; }
   .workflow-name, .user-badge { display: none; }
+  .main-container { gap: 8px; padding: 0 10px 10px; }
+  .app-header { margin: 10px 10px 8px; }
 }
 </style>

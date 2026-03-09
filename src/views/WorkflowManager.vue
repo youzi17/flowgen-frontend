@@ -106,22 +106,6 @@
 
             <p class="card-desc">{{ wf.description || '暂无描述' }}</p>
 
-            <div class="card-stats">
-              <span class="stat-badge">
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                  <circle cx="6" cy="6" r="4" stroke="#6366f1" stroke-width="1.5" />
-                  <circle cx="6" cy="6" r="1.5" fill="#6366f1" />
-                </svg>
-                {{ wf.nodes.length }} 节点
-              </span>
-              <span class="stat-badge">
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                  <path d="M2 6h8M7 3l3 3-3 3" stroke="#8b5cf6" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
-                </svg>
-                {{ wf.edges.length }} 连接
-              </span>
-            </div>
-
             <div class="card-footer">
               <span class="card-date">{{ formatDate(wf.metadata.updatedAt) }}</span>
               <span class="card-version">v{{ wf.metadata.version }}</span>
@@ -177,6 +161,7 @@ import { storeToRefs } from 'pinia'
 import { useWorkflowStore } from '@/stores/workflow-store'
 import { useAuthStore } from '@/stores/auth-store'
 import type { WorkflowState } from '@/types/workflow'
+import { workflowApi } from '@/services/api'
 import { ElMessage } from 'element-plus'
 
 const router = useRouter()
@@ -225,9 +210,14 @@ const toggleMenu = (id: string) => {
 
 // 点击外部关闭菜单
 const handleClickOutside = () => { activeMenu.value = null }
-onMounted(() => {
+onMounted(async () => {
   document.addEventListener('click', handleClickOutside)
-  workflowStore.initialize()
+  loading.value = true
+  try {
+    await workflowStore.initialize()
+  } finally {
+    loading.value = false
+  }
 })
 onUnmounted(() => document.removeEventListener('click', handleClickOutside))
 
@@ -245,14 +235,19 @@ const duplicateWorkflow = async (id: string) => {
   activeMenu.value = null
 }
 
-const exportWorkflow = (wf: WorkflowState) => {
-  const blob = new Blob([JSON.stringify(wf, null, 2)], { type: 'application/json' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `${wf.name}.json`
-  a.click()
-  URL.revokeObjectURL(url)
+const exportWorkflow = async (wf: WorkflowState) => {
+  try {
+    const data = await workflowApi.exportJson(wf.id)
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${wf.name}.json`
+    a.click()
+    URL.revokeObjectURL(url)
+  } catch (error) {
+    ElMessage.error('导出失败: ' + (error instanceof Error ? error.message : '未知错误'))
+  }
   activeMenu.value = null
 }
 
@@ -610,22 +605,6 @@ const handleLogout = () => {
   -webkit-box-orient: vertical;
   overflow: hidden;
   line-height: 1.5;
-}
-
-.card-stats {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 14px;
-}
-.stat-badge {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 12px;
-  color: #6b7280;
-  background: #f3f4f6;
-  padding: 3px 8px;
-  border-radius: 6px;
 }
 
 .card-footer {

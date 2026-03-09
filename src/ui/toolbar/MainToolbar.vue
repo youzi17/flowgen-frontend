@@ -2,13 +2,13 @@
   <div class="toolbar">
     <div class="toolbar-left">
       <div class="workflow-actions">
-        <el-button class="main-button" @click="handleSave">
+        <el-button class="main-button save-button" @click="handleSave">
           <el-icon><Document /></el-icon>
           <span>保存</span>
         </el-button>
         <el-button
           type="primary"
-          class="main-button"
+          class="main-button run-button"
           @click="executeWorkflow"
           :disabled="!canExecute"
           :loading="isExecuting"
@@ -41,7 +41,7 @@
         </el-button>
       </div>
       <div class="view-actions">
-        <el-button type="text" class="main-button" @click="viewWorkflows">
+        <el-button type="text" class="main-button ghost-button" @click="viewWorkflows">
           <el-icon><View /></el-icon>
           <span>查看已有工作流</span>
         </el-button>
@@ -140,7 +140,7 @@ const viewWorkflows = () => {
 .toolbar-right {
   display: flex;
   align-items: center;
-  gap: 24px; /* space-x-6 = 24px */
+  gap: 18px;
 }
 
 /* 按钮组 */
@@ -149,7 +149,7 @@ const viewWorkflows = () => {
 .view-actions {
   display: flex;
   align-items: center;
-  gap: 24px; /* space-x-6 = 24px */
+  gap: 14px;
 }
 
 .history-actions {
@@ -158,18 +158,42 @@ const viewWorkflows = () => {
 
 /* 主要按钮样式 */
 .main-button {
-  padding: 10px 20px; /* px-5 py-2.5 = 20px×10px */
-  border-radius: 8px; /* rounded-lg = 8px */
+  padding: 10px 18px;
+  border-radius: 14px;
   font-size: var(--el-button-font-size);
   height: auto;
   display: flex;
   align-items: center;
-  gap: 8px; /* space-x-2 = 8px 图标文字间距 */
+  gap: 8px;
   transition: all 0.2s ease;
 }
 
 .main-button .el-icon {
-  font-size: 18px;
+  font-size: 16px;
+}
+
+.save-button {
+  border: 1px solid #d6e2ec;
+  background: rgba(248, 251, 252, 0.9);
+  color: #45607a;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+.run-button {
+  background: linear-gradient(135deg, #6888aa, #547592);
+  border-color: #5b7b99;
+  box-shadow: 0 8px 20px rgba(84, 117, 146, 0.28);
+}
+
+.ghost-button {
+  color: #607284;
+  padding: 8px 10px;
+}
+
+.ghost-button:hover {
+  color: #3f5b76;
+  background: rgba(236, 243, 248, 0.85);
+  border-radius: 12px;
 }
 
 /* 图标按钮样式 */
@@ -177,7 +201,9 @@ const viewWorkflows = () => {
   width: 44px; /* w-11 = 44px */
   height: 44px; /* h-11 = 44px */
   padding: 0;
-  border-radius: 8px; /* rounded-lg = 8px */
+  border-radius: 12px;
+  background: rgba(247, 250, 252, 0.75);
+  border: 1px solid rgba(214, 226, 236, 0.8);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -185,12 +211,12 @@ const viewWorkflows = () => {
 }
 
 .icon-button .el-icon {
-  font-size: 20px;
-  color: var(--el-text-color-subtitle);
+  font-size: 18px;
+  color: #607284;
 }
 
 .icon-button:hover .el-icon {
-  color: var(--el-color-primary);
+  color: #46627e;
 }
 
 .icon-button:disabled .el-icon {
