@@ -1,376 +1,396 @@
-# FlowGen - AI工作流可视化编排平台
+# FlowGen Backend
 
-## 📋 项目概述
-
-FlowGen 是一个纯前端的AI工作流可视化编排平台，支持通过拖拽方式构建工作流，并在本地执行和存储。
-
-**核心特性**：
-- 🎨 可视化工作流编辑器
-- 🔄 支持多种节点类型（AI对话、条件判断、数据处理等）
-- 💾 本地存储（IndexedDB）
-- ⚡ 实时执行和状态可视化
-- ↩️ 撤销/重做功能
-- 📱 响应式布局
+> AI 工作流可视化编排平台后端服务
 
 ---
 
-## 🛠️ 技术栈
+## 架构说明
 
-| 类别 | 技术 | 版本 | 说明 |
-|------|------|------|------|
-| 核心框架 | Vue 3 | 3.5.22 | Composition API |
-| 类型系统 | TypeScript | 5.9 | 严格模式 |
-| 构建工具 | Vite | 7.1 | 快速构建 |
-| UI组件库 | Element Plus | 2.11.7 | Vue 3组件库 |
-| 流程图 | Vue Flow | 1.47.0 | 可视化流程图 |
-| 状态管理 | Pinia | 3.0.3 | Vue官方状态管理 |
-| 本地存储 | LocalForage | 1.10.0 | IndexedDB封装 |
+### 技术栈
+
+| 类别 | 技术 | 版本 |
+|------|------|------|
+| 框架 | NestJS | ^10.x |
+| 语言 | TypeScript | ^5.x |
+| ORM | TypeORM | ^0.3.x |
+| 数据库 | PostgreSQL | ^15.x |
+| 认证 | JWT + Passport | - |
+| AI SDK | OpenAI / Anthropic / DashScope | - |
+
+### 整体架构
+
+```
+Frontend (Vue 3 + React Flow)
+        │ REST API / SSE
+        ▼
+Backend (NestJS)
+├── Auth Module (JWT 认证)
+├── Workflows Module (CRUD)
+├── Execution Module (工作流执行引擎 + SSE)
+└── AI Module (多提供商统一封装)
+        │
+        ▼
+PostgreSQL (JSONB 存储)
+```
+
+### 核心模块
+
+| 模块 | 职责 |
+|------|------|
+| **Auth** | 用户注册/登录，JWT 认证 |
+| **Workflows** | 工作流 CRUD、导入导出 |
+| **Execution** | 拓扑排序执行引擎、SSE 实时推送 |
+| **AI** | OpenAI / Anthropic / 通义千问统一封装 |
+
+### 数据库设计
+
+```sql
+-- 用户表
+users (id, email, password_hash, display_name, created_at, updated_at)
+
+-- 工作流表（节点和边以 JSONB 存储）
+workflows (id, name, description, nodes JSONB, edges JSONB, version, user_id, created_at, updated_at)
+
+-- 执行日志表
+execution_logs (id, workflow_id, status, node_results JSONB, final_output JSONB, error_message, execution_time_ms, created_at)
+```
+
+**设计亮点**：
+- JSONB 存储节点/边数据，灵活适配不同节点类型
+- 级联删除，用户删除时自动清理关联数据
+- 执行日志持久化，支持历史回溯
 
 ---
 
-## 📁 项目结构
+## 关键 Prompt 与 Vibe 思路
+
+### 开发方法论：Superpowers 框架
+
+**核心理念**：文档先行、充分讨论、渐进实现
+
+```
+需求理解 → 架构设计 → 文档撰写 → 代码实现 → 迭代优化
+```
+
+### 关键实践
+
+#### 1. 文档驱动开发
+
+**Prompt 策略**：让 AI 先理解上下文，再生成文档，最后实现代码。
+
+```
+示例流程：
+1. "请阅读 docs/api/modules/ 目录下的文档，理解现有架构"
+2. /backend-doc-writer → 生成模块文档
+3. 人工审查文档
+4. "根据文档实现代码，遵循：禁止 any、使用 ApiResponseDto"
+```
+
+#### 2. Skill 工具链
+
+```
+/backend-doc-writer   # 生成后端模块架构文档
+/nestjs-code-review   # 审查后端代码质量
+/vue-code-review      # 审查前端代码质量
+```
+
+#### 3. 约束明确
+
+```
+Prompt 模板：
+"根据 [文档路径] 实现 [模块名称]，要求：
+1. 严格遵循文档中的类型定义
+2. 使用项目已有的 ApiResponseDto 统一响应格式
+3. 禁止使用 any 类型
+4. 每个函数必须有注释"
+```
+
+#### 4. 渐进式开发
+
+- 每次只让 AI 完成一个明确任务
+- 关键设计决策必须人工确认
+- 用 skill 工具定期审查代码质量
+
+### 本项目实践案例
+
+**工作流执行引擎开发流程**：
+
+1. **需求澄清**：确认条件分支、模板变量、错误处理
+2. **文档生成**：`/backend-doc-writer` → `docs/api/modules/04-execution.md`
+3. **代码实现**：AI 根据文档实现拓扑排序、节点执行器、参数解析器
+4. **审查优化**：`/nestjs-code-review` → 发现循环依赖检测缺失 → AI 修复
+
+---
+
+## AI 调用逻辑
+
+### 多提供商统一封装
+
+```typescript
+// 统一接口
+interface AiCallParams {
+  model: string;        // 'gpt-4o' | 'claude-3-5-sonnet' | 'qwen-turbo'
+  prompt: string;
+  temperature: number;
+  maxTokens: number;
+}
+
+interface AiCallResult {
+  text: string;
+  model: string;
+  usage: { promptTokens, completionTokens, totalTokens };
+}
+
+// AiService 根据模型前缀自动路由
+async call(params: AiCallParams): Promise<AiCallResult> {
+  if (params.model.startsWith('gpt')) return this.openaiProvider.call(params);
+  if (params.model.startsWith('claude')) return this.anthropicProvider.call(params);
+  if (params.model.startsWith('qwen')) return this.dashscopeProvider.call(params);
+  throw new Error(`不支持的模型: ${params.model}`);
+}
+```
+
+### 支持的 AI 提供商
+
+| 提供商 | 模型前缀 | SDK |
+|--------|----------|-----|
+| OpenAI | `gpt-*`, `o1-*`, `o3-*` | `openai` |
+| Anthropic | `claude-*` | `@anthropic-ai/sdk` |
+| 阿里云通义千问 | `qwen-*` | `openai` (兼容模式) |
+
+### 懒加载设计
+
+Provider 采用懒加载，避免未配置 API Key 时启动失败：
+
+```typescript
+private getClient(): OpenAI {
+  if (!process.env.OPENAI_API_KEY) throw new Error('OPENAI_API_KEY 未配置');
+  if (!this.client) this.client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  return this.client;
+}
+```
+
+### 当前实现：非流式调用
+
+AI 节点执行完成后返回完整结果，通过 SSE 推送节点级进度。
+
+**未来扩展**：可改造为流式调用，通过 EventEmitter 实时推送 AI 输出 chunk。
+
+---
+
+## 部署步骤说明
+
+### 环境要求
+
+- Node.js >= 18.x
+- PostgreSQL >= 15.x
+
+### 1. 安装与配置
+
+```bash
+git clone https://github.com/youzi17/flowgen-backend.git
+cd flowgen-backend
+npm install
+cp .env.example .env
+```
+
+编辑 `.env`：
+
+```env
+DATABASE_HOST=localhost
+DATABASE_PORT=5432
+DATABASE_NAME=flowgen
+DATABASE_USER=postgres
+DATABASE_PASSWORD=your_secure_password
+
+JWT_SECRET=your_jwt_secret_at_least_32_chars
+JWT_EXPIRES_IN=7d
+
+OPENAI_API_KEY=sk-...
+ANTHROPIC_API_KEY=sk-ant-...
+DASHSCOPE_API_KEY=sk-...
+
+PORT=3000
+NODE_ENV=production
+CORS_ORIGIN=https://your-frontend-domain.com
+```
+
+### 2. 创建数据库
+
+```bash
+psql -U postgres -c "CREATE DATABASE flowgen;"
+```
+
+### 3. 启动服务
+
+```bash
+npm run build
+npm run start
+
+# 验证
+curl http://localhost:3000/api
+# API 文档：http://localhost:3000/api-docs
+```
+
+首次启动时 TypeORM 自动创建所有表。
+
+---
+
+### 生产环境部署（含 DNS/HTTPS）
+
+#### 方案：Nginx + Let's Encrypt
+
+##### 1. 安装 Nginx 和 Certbot
+
+```bash
+sudo apt update
+sudo apt install nginx certbot python3-certbot-nginx
+```
+
+##### 2. 配置 Nginx
+
+```nginx
+# /etc/nginx/sites-available/flowgen-api
+server {
+    listen 80;
+    server_name api.yourdomain.com;
+
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # SSE 支持
+        proxy_buffering off;
+        proxy_cache off;
+    }
+}
+```
+
+```bash
+sudo ln -s /etc/nginx/sites-available/flowgen-api /etc/nginx/sites-enabled/
+sudo nginx -t
+sudo systemctl restart nginx
+```
+
+##### 3. 配置 DNS
+
+域名服务商控制台添加 A 记录：
+
+```
+类型: A
+主机记录: api
+记录值: 服务器公网 IP
+```
+
+##### 4. 申请 SSL 证书
+
+```bash
+sudo certbot --nginx -d api.yourdomain.com
+```
+
+Certbot 自动配置 HTTPS，证书到期前自动续期。
+
+##### 5. 安全加固
+
+- 数据库强密码 + 只监听本地
+- `JWT_SECRET` 至少 32 字符
+- 生产环境 `CORS_ORIGIN` 设置为前端域名
+- `.env` 文件权限设为 `600`
+
+---
+
+## API 文档
+
+启动后访问：`http://localhost:3000/api-docs`
+
+### 核心接口
+
+#### 认证
+
+```http
+POST /api/auth/register
+POST /api/auth/login
+→ { access_token, user }
+```
+
+#### 工作流
+
+```http
+GET    /api/workflows           # 列表
+POST   /api/workflows           # 创建
+GET    /api/workflows/:id       # 详情
+PUT    /api/workflows/:id       # 更新
+DELETE /api/workflows/:id       # 删除
+POST   /api/workflows/import    # 导入
+GET    /api/workflows/:id/export # 导出
+```
+
+#### 执行
+
+```http
+POST /api/execution/:workflowId/run
+→ { logId, status: "running" }
+
+GET /api/execution/:logId/events  # SSE 实时进度
+```
+
+**SSE 事件流**：
+
+```javascript
+const eventSource = new EventSource(`/api/execution/${logId}/events`);
+eventSource.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+  // data.type: 'execution.started' | 'node.start' | 'node.complete' | 'execution.completed' | 'execution.failed'
+};
+```
+
+---
+
+## 开发指南
+
+### 项目结构
 
 ```
 src/
-├── core/                      # 核心业务逻辑层
-│   ├── workflow-engine/       # 工作流执行引擎
-│   │   ├── executor.ts        # 执行器（拓扑排序、节点执行）
-│   │   └── types.ts           # 执行引擎类型定义
-│   ├── node-registry/         # 节点注册中心
-│   │   └── registry.ts        # 节点类型管理
-│   ├── storage/               # 存储管理
-│   │   └── storage-manager.ts # LocalForage封装
-│   ├── nodes/                 # 节点定义与执行器
-│   │   ├── base-nodes.ts      # 开始/结束节点
-│   │   ├── ai-nodes.ts        # AI对话节点
-│   │   ├── logic-nodes.ts     # 条件判断节点
-│   │   └── data-nodes.ts      # 数据处理节点
-│   └── utils/                 # 工具函数
-│       └── parameter-resolver.ts # 参数解析器
-│
-├── stores/                    # Pinia状态管理
-│   ├── workflow-store.ts      # 工作流状态（节点、连接、执行）
-│   ├── ui-store.ts            # UI状态（选中、面板显示）
-│   └── history-store.ts       # 历史记录（撤销/重做）
-│
-├── ui/                        # UI组件层
-│   ├── layout/                # 布局组件
-│   │   └── AppLayout.vue      # 主布局（Header/Aside/Main/Footer）
-│   ├── canvas/                # 画布组件
-│   │   └── WorkflowCanvas.vue # Vue Flow画布
-│   ├── palette/               # 节点面板
-│   │   └── NodePalette.vue    # 节点选择器（拖拽）
-│   ├── panel/                 # 配置面板
-│   │   ├── ConfigPanel.vue    # 节点配置面板
-│   │   ├── ExecutionPanel.vue # 执行日志面板
-│   │   └── configs/           # 各节点配置组件
-│   ├── toolbar/               # 工具栏
-│   │   └── MainToolbar.vue    # 保存/执行/撤销/重做
-│   ├── nodes/                 # 节点视图组件
-│   │   ├── start-node.vue     # 开始节点视图
-│   │   ├── ai-chat-node.vue   # AI对话节点视图
-│   │   └── ...                # 其他节点视图
-│   └── components/            # 通用组件
-│       ├── VariableInput.vue  # 变量输入
-│       └── VariableSelector.vue # 变量选择器
-│
-├── views/                     # 页面组件
-│   ├── WorkflowManager.vue    # 工作流管理页（列表）
-│   └── WorkflowEditor.vue     # 工作流编辑器页
-│
-├── types/                     # TypeScript类型定义
-│   └── workflow.ts            # 工作流相关类型
-│
-├── router/                    # 路由配置
-│   └── index.ts               # 路由定义
-│
-├── styles/                    # 全局样式
-│   └── element-theme.css      # Element Plus主题
-│
-├── App.vue                    # 根组件
-└── main.ts                    # 应用入口
+├── common/          # 统一响应、异常过滤器、守卫
+├── config/          # 数据库、应用配置
+└── modules/
+    ├── auth/        # 认证模块
+    ├── workflows/   # 工作流 CRUD
+    ├── execution/   # 执行引擎
+    │   ├── engine/  # 拓扑排序、节点执行器、参数解析
+    │   ├── nodes/   # 各节点类型执行器
+    │   └── events/  # SSE 事件定义
+    └── ai/          # AI 提供商封装
 ```
 
----
+### 开发命令
 
-## 🏗️ 核心架构
-
-### 1. 工作流执行引擎 (WorkflowExecutor)
-
-**职责**：执行工作流，管理节点执行顺序和状态
-
-**核心流程**：
-```
-拓扑排序 → 依次执行节点 → 上下文传递 → 状态更新
-```
-
-**关键方法**：
-- `execute(nodes, edges)` - 执行工作流
-- `topologicalSort()` - 拓扑排序确定执行顺序
-- `executeNode()` - 执行单个节点
-
-**代码位置**：`src/core/workflow-engine/executor.ts`
-
-### 2. 节点注册中心 (NodeRegistry)
-
-**职责**：管理所有节点类型的定义和执行器
-
-**节点类型**：
-- `start` - 开始节点（工作流入口）
-- `end` - 结束节点（工作流出口）
-- `ai-chat` - AI对话节点（调用AI模型）
-- `condition` - 条件节点（分支判断）
-- `data-process` - 数据处理节点（数据转换）
-- `text-output` - 文本输出节点（输出结果）
-
-**节点定义结构**：
-```typescript
-{
-  type: NodeType;           // 节点类型
-  name: string;             // 节点名称
-  category: string;         // 节点分类
-  inputs: number;           // 输入端口数
-  outputs: number;          // 输出端口数
-  defaultData: any;         // 默认数据
-  executor: NodeExecutor;   // 执行器函数
-}
-```
-
-**代码位置**：`src/core/node-registry/registry.ts`
-
-### 3. 存储管理器 (StorageManager)
-
-**职责**：管理工作流的本地持久化
-
-**存储方案**：LocalForage（优先IndexedDB，降级到WebSQL/localStorage）
-
-**关键方法**：
-- `saveWorkflow()` - 保存工作流
-- `getWorkflows()` - 获取所有工作流
-- `getWorkflowById()` - 根据ID获取工作流
-- `deleteWorkflow()` - 删除工作流
-
-**代码位置**：`src/core/storage/storage-manager.ts`
-
----
-
-## 📊 状态管理 (Pinia)
-
-### WorkflowStore - 工作流状态
-
-**核心状态**：
-- `currentWorkflow` - 当前编辑的工作流
-- `workflows` - 所有工作流列表
-- `executionContext` - 执行上下文（节点输出）
-- `isExecuting` - 是否正在执行
-- `executionLogs` - 执行日志
-
-**核心操作**：
-- `addNode()` / `deleteNode()` - 节点增删
-- `addEdge()` / `deleteEdge()` - 连接增删
-- `updateNodeData()` - 更新节点数据
-- `executeWorkflow()` - 执行工作流
-- `saveWorkflow()` / `loadWorkflow()` - 保存/加载工作流
-
-**代码位置**：`src/stores/workflow-store.ts`
-
-### UIStore - UI状态
-
-**核心状态**：
-- `selectedNodeId` - 当前选中节点
-- `sidebarVisible` - 侧边栏显示
-- `configPanelVisible` - 配置面板显示
-- `executionPanelVisible` - 执行面板显示
-
-**代码位置**：`src/stores/ui-store.ts`
-
-### HistoryStore - 历史记录
-
-**核心状态**：
-- `past` - 历史状态栈
-- `future` - 未来状态栈（重做）
-
-**核心操作**：
-- `pushState()` - 保存当前状态
-- `undo()` / `redo()` - 撤销/重做
-
-**代码位置**：`src/stores/history-store.ts`
-
----
-
-## 🔄 核心数据流
-
-### 1. 添加节点流程
-```
-用户拖拽节点 → Canvas监听drop → workflowStore.addNode()
-→ 更新currentWorkflow → historyStore.pushState() → UI自动更新
-```
-
-### 2. 节点配置流程
-```
-点击节点 → uiStore.selectNode() → ConfigPanel加载配置组件
-→ 修改配置 → workflowStore.updateNodeData() → 保存历史
-```
-
-### 3. 执行工作流流程
-```
-点击执行 → workflowStore.executeWorkflow() → 创建Executor
-→ 拓扑排序 → 依次执行节点 → 更新节点状态 → 记录日志 → UI实时显示
-```
-
-### 4. 保存工作流流程
-```
-点击保存 → workflowStore.saveWorkflow() → 更新元数据
-→ storageManager.saveWorkflow() → LocalForage存储 → 更新列表
-```
-
----
-
-## 🛣️ 路由设计
-
-| 路径 | 组件 | 说明 |
-|------|------|------|
-| `/` | - | 重定向到 `/workflows` |
-| `/workflows` | WorkflowManager | 工作流管理页（列表、新建、删除） |
-| `/workflow/:id?` | WorkflowEditor | 工作流编辑器（画布、配置、执行） |
-
-**代码位置**：`src/router/index.ts`
-
----
-
-## 🎯 核心类型定义
-
-### WorkflowNode - 工作流节点
-```typescript
-interface WorkflowNode {
-  id: string;              // 节点唯一标识
-  type: NodeType;          // 节点类型
-  position: Position;      // 节点位置 {x, y}
-  data: BaseNodeData;      // 节点数据
-  status?: NodeStatus;     // 节点状态 idle/executing/success/failed
-}
-```
-
-### Edge - 连接
-```typescript
-interface Edge {
-  id: string;              // 连接唯一标识
-  source: string;          // 源节点ID
-  target: string;          // 目标节点ID
-  sourceHandle?: string;   // 源节点端口
-  targetHandle?: string;   // 目标节点端口
-}
-```
-
-### WorkflowState - 工作流状态
-```typescript
-interface WorkflowState {
-  id: string;              // 工作流唯一标识
-  name: string;            // 工作流名称
-  description?: string;    // 工作流描述
-  nodes: WorkflowNode[];   // 节点列表
-  edges: Edge[];           // 连接列表
-  metadata: {              // 元数据
-    createdAt: string;     // 创建时间
-    updatedAt: string;     // 更新时间
-    version: number;       // 版本号
-  };
-}
-```
-
-**代码位置**：`src/types/workflow.ts`
-
----
-
-## 🚀 快速开始
-
-### 环境要求
-- Node.js >= 20.19.0 或 >= 22.12.0
-- npm >= 9.0.0
-
-### 安装依赖
 ```bash
-npm install
+npm run start:dev   # 开发环境（热重载）
+npm run build       # 编译
+npm run start       # 生产环境
+npm run lint        # 代码检查
 ```
 
-### 开发模式
-```bash
-npm run dev
-```
+### 扩展节点类型
 
-### 构建生产版本
-```bash
-npm run build
-```
+1. 创建执行器：`src/modules/execution/nodes/my-custom.executor.ts`
+2. 注册到 `NODE_EXECUTORS` 映射表
 
-### 代码检查
-```bash
-npm run lint
-```
+### 扩展 AI 提供商
 
-### 类型检查
-```bash
-npm run type-check
-```
+1. 创建 Provider：`src/modules/ai/providers/my-provider.provider.ts`
+2. 在 `AiService.call()` 添加模型前缀路由
 
 ---
 
-## 🔧 开发规范
+## License
 
-### 代码风格
-- ✅ 使用 ESLint + Prettier 进行代码检查和格式化
-- ✅ 遵循 Vue 3 Composition API 最佳实践
-- ✅ 使用 TypeScript 严格模式，**禁止使用 `any` 类型**
-- ✅ 使用 `<script setup>` 语法
-
-### 组件开发
-- Props 使用 TypeScript 接口定义
-- 事件使用 `defineEmits` 定义类型
-- 组件命名使用 PascalCase
-- 文件命名使用 kebab-case
-
-### 状态管理
-- 使用 Pinia 进行状态管理
-- Store 按功能模块划分
-- 使用 Composition API 风格定义 Store
-
-### 注释规范
-- 关键函数和复杂逻辑必须添加注释
-- 使用 JSDoc 格式编写函数注释
-- 组件 Props 和 Events 必须添加注释说明
-
----
-
-## 📝 IDE 推荐配置
-
-### VS Code
-- [Vue (Official)](https://marketplace.visualstudio.com/items?itemName=Vue.volar) - Vue 3 官方插件
-- [TypeScript Vue Plugin (Volar)](https://marketplace.visualstudio.com/items?itemName=Vue.vscode-typescript-vue-plugin) - TypeScript 支持
-- [ESLint](https://marketplace.visualstudio.com/items?itemName=dbaeumer.vscode-eslint) - 代码检查
-- [Prettier](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode) - 代码格式化
-
-### 浏览器插件
-- [Vue.js devtools](https://chromewebstore.google.com/detail/vuejs-devtools/nhdogjmejiglipccpnnnanhbledajbpd) - Vue 调试工具
-
----
-
-## 📚 相关文档
-
-- [Vue 3 官方文档](https://cn.vuejs.org/)
-- [Pinia 官方文档](https://pinia.vuejs.org/zh/)
-- [Element Plus 官方文档](https://element-plus.org/zh-CN/)
-- [Vue Flow 官方文档](https://vueflow.dev/)
-- [TypeScript 官方文档](https://www.typescriptlang.org/)
-- [Vite 官方文档](https://cn.vitejs.dev/)
-
----
-
-## 📄 License
-
-MIT License
-
----
-
-**文档版本**：v1.0
-**最后更新**：2026-02-14
-**维护者**：FlowGen 团队
+MIT
